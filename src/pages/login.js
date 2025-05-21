@@ -10,24 +10,19 @@ function Login() {
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const success = await login(email, password);
 
-    
-      const aceite = login(email, password); // chama a função do contexto
-      if (!aceite) {
-        setErro('Email ou senha inválidos!');
-        return;
-      }
-      else
-      alert('Login bem-sucedido!');
-
+    if (!success) {
+      alert('Login falhou: credenciais inválidas');
+    }
   };
 
   return (
     <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light px-3">
       <div className="bg-white p-4 p-md-5 rounded-4 shadow-sm w-100" style={{ maxWidth: '380px' }}>
-        
+
         {/* LOGO */}
         <div className="text-center mb-2">
           <img
