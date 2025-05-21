@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../auth/AuthContext'; // <--- esta linha estava a faltar
+import { useAuth } from '../auth/AuthContext'; // sem hardcode
 
 
 

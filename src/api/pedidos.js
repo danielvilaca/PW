@@ -11,7 +11,7 @@ export const criarPedido = async (pedido) => {
 
   if (error) {
     console.error('Erro ao criar pedido:', error);
-    throw error; // <– isso vai aparecer no console do navegador
+    throw error;
   }
   return data;
 };
