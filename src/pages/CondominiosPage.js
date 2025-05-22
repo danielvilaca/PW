@@ -55,7 +55,7 @@ function CondominiosPage() {
   }, []);
 
   return (
-    <div className="container py-5">
+    <div className="container mt-5 py-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="mb-0">Dashboard SmartCondo</h1>
         <button className="btn btn-outline-danger" onClick={logout}>
