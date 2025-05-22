@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { FiX } from 'react-icons/fi';
 
 const PedidoModal = ({ pedido, onClose, onGuardar }) => {
   const [formData, setFormData] = useState(pedido);
@@ -12,61 +13,86 @@ const PedidoModal = ({ pedido, onClose, onGuardar }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onGuardar(formData);
+    if (onGuardar) onGuardar(formData);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-center items-center">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-        
-        <h2 className="text-xl font-semibold mb-4">Detalhes do Pedido</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="titulo"
-            value={formData.titulo}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            placeholder="Título"
-            readOnly={!onGuardar}
-          />
-          <textarea
-            name="descricao"
-            value={formData.descricao}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            placeholder="Descrição"
-            readOnly={!onGuardar}
-          />
-          <input
-            type="date"
-            name="validade_orcamentos"
-            value={formData.validade_orcamentos}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            readOnly={!onGuardar}
-          />
-          <select
-            name="estado"
-            value={formData.estado}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-            disabled={!onGuardar}
-          >
-            <option value="Aberto">Aberto</option>
-            <option value="Em Análise">Em Análise</option>
-            <option value="Concluído">Concluído</option>
-          </select>
+    <div className="modal d-block show fade" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content shadow rounded-4">
+          <div className="modal-header">
+            <h5 className="modal-title">Detalhes do Pedido</h5>
+            <button type="button" className="btn-close" aria-label="Fechar" onClick={onClose}></button>
+          </div>
 
-          {onGuardar && (
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-              Guardar alterações
-            </button>
-          )}
-        </form>
-        <button onClick={onClose} className="mt-4 text-sm text-gray-600 hover:underline">
-          Fechar
-        </button>
+          <form onSubmit={handleSubmit}>
+            <div className="modal-body">
+              <div className="mb-3">
+                <label className="form-label">Título</label>
+                <input
+                  type="text"
+                  name="titulo"
+                  value={formData.titulo}
+                  onChange={handleChange}
+                  className="form-control"
+                  readOnly={!onGuardar}
+                  required
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Descrição</label>
+                <textarea
+                  name="descricao"
+                  value={formData.descricao}
+                  onChange={handleChange}
+                  className="form-control"
+                  rows="3"
+                  readOnly={!onGuardar}
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Validade dos Orçamentos</label>
+                <input
+                  type="date"
+                  name="validade_orcamentos"
+                  value={formData.validade_orcamentos}
+                  onChange={handleChange}
+                  className="form-control"
+                  readOnly={!onGuardar}
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Estado</label>
+                <select
+                  name="estado"
+                  value={formData.estado}
+                  onChange={handleChange}
+                  className="form-select"
+                  disabled={!onGuardar}
+                >
+                  <option value="Aberto">Aberto</option>
+                  <option value="Em Análise">Em Análise</option>
+                  <option value="Concluído">Concluído</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={onClose}>
+                Fechar
+              </button>
+
+              {onGuardar && (
+                <button type="submit" className="btn btn-primary">
+                  Guardar alterações
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
