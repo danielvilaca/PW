@@ -18,6 +18,7 @@ const PedidoModal = ({ pedido, onClose, onGuardar }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-center items-center">
       <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+        
         <h2 className="text-xl font-semibold mb-4">Detalhes do Pedido</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input

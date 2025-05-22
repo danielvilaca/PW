@@ -1,24 +1,59 @@
-const PedidoCard = ({ pedido, onVerDetalhes, onEditar, onEliminar }) => (
-  <div className="bg-white rounded-xl shadow-md p-4 border relative">
-    <h3 className="text-lg font-semibold text-gray-800">{pedido.titulo}</h3>
-    <p className="text-sm text-gray-600 mt-1">{pedido.descricao}</p>
-    <div className="flex justify-between items-center text-sm mt-3">
-      <span className="text-blue-600 font-medium">Estado: {pedido.estado}</span>
-      <span className="text-gray-500">Validade: {pedido.validade_orcamentos}</span>
-    </div>
+import React from 'react';
+import { FiCalendar, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
-    <div className="flex gap-2 mt-4">
-      <button onClick={() => onVerDetalhes(pedido)} className="text-blue-600 hover:underline text-sm">
-        Ver detalhes
-      </button>
-      <button onClick={() => onEditar(pedido)} className="text-yellow-600 hover:underline text-sm">
-        Editar
-      </button>
-      <button onClick={() => onEliminar(pedido.id)} className="text-red-600 hover:underline text-sm">
-        Eliminar
-      </button>
+const PedidoCard = ({ pedido, onVerDetalhes, onEditar, onEliminar }) => {
+  const estadoCor = {
+    Aberto: 'primary',
+    Pendente: 'warning',
+    Fechado: 'success',
+    Cancelado: 'secondary',
+  };
+
+  const badgeColor = estadoCor[pedido.estado] || 'dark';
+
+  return (
+    <div className="card bg-light border-0 shadow-sm rounded-4 mb-4">
+      <div className="card-body">
+        {/* Título e descrição */}
+        <h5 className="card-title mb-1">{pedido.titulo}</h5>
+        <p className="text-muted small mb-2">{pedido.descricao}</p>
+
+        {/* Estado + Validade */}
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <span className={`badge bg-${badgeColor}`}>{pedido.estado}</span>
+          <small className="text-muted d-flex align-items-center gap-1">
+            <FiCalendar /> {pedido.validade_orcamentos}
+          </small>
+        </div>
+
+        <hr className="my-2" />
+
+        {/* Botões de ação */}
+        <div className="d-flex gap-2 flex-wrap">
+          <button
+            onClick={() => onVerDetalhes(pedido)}
+            className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+          >
+            <FiEye /> Detalhes
+          </button>
+
+          <button
+            onClick={() => onEditar(pedido)}
+            className="btn btn-outline-warning btn-sm text-dark d-flex align-items-center gap-1"
+          >
+            <FiEdit2 /> Editar
+          </button>
+
+          <button
+            onClick={() => onEliminar(pedido.id)}
+            className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+          >
+            <FiTrash2 /> Eliminar
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default PedidoCard;

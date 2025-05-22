@@ -22,6 +22,7 @@ export const eliminarPedido = async (id) => {
 };
 
 export const updatePedido = async (pedido) => {
+  console.log('Dados pedido:', pedido);
   const { error } = await supabase
     .from('pedidos')
     .update(pedido)
