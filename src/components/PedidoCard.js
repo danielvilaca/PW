@@ -4,8 +4,8 @@ import { FiCalendar, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 const PedidoCard = ({ pedido, onVerDetalhes, onEditar, onEliminar }) => {
   const estadoCor = {
     Aberto: 'primary',
-    Pendente: 'warning',
-    Fechado: 'success',
+    EmAnalise: 'warning',
+    Concluído: 'success',
     Cancelado: 'secondary',
   };
 
