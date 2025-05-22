@@ -12,27 +12,27 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50 px-6 py-3 flex justify-between items-center">
-      <div className="flex gap-6 items-center">
-        <Link to="/condominios" className="flex items-center gap-1 text-gray-800 hover:text-blue-600 font-medium">
+  <nav className="navbar navbar-expand-lg bg-white shadow fixed-top px-4 py-3 d-flex justify-content-between align-items-center">
+      <div className="d-flex gap-4 align-items-center">
+        <Link to="/condominios" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
           <FiHome /> Condomínios
         </Link>
-        <Link to="/gestao-pedidos" className="flex items-center gap-1 text-gray-800 hover:text-blue-600 font-medium">
+        <Link to="/gestao-pedidos" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
           <FiSettings /> Gestão de Pedidos
         </Link>
-        <Link to="/novo-pedido" className="flex items-center gap-1 text-gray-800 hover:text-blue-600 font-medium">
+        <Link to="/novo-pedido" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
           <FiPlusCircle /> Novo Pedido
         </Link>
-        <Link to="/faturas" className="flex items-center gap-1 text-gray-800 hover:text-blue-600 font-medium">
+        <Link to="/faturas" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
           <FiFileText /> Faturas
         </Link>
       </div>
       <button
         onClick={handleLogout}
-        className="flex items-center gap-1 text-red-600 hover:underline font-medium"
+        className="btn btn-link text-danger d-flex align-items-center gap-1 fw-medium text-decoration-none"
       >
         <FiLogOut /> Logout
-      </button>
+         </button>
     </nav>
   );
 };
