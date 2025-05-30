@@ -1,4 +1,3 @@
-// src/components/PerfilForm.js
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { fetchPerfil, createPerfil, updatePerfil } from '../api/perfis';
@@ -13,7 +12,7 @@ export default function PerfilForm() {
   const [saving,  setSaving]  = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  /* ---------- carregar ou criar perfil ---------- */
+
   useEffect(() => {
     if (!user) return;
 
@@ -22,7 +21,6 @@ export default function PerfilForm() {
         let p = await fetchPerfil(user.id);
 
         if (!p) {
-          // cria perfil default se não existir
           await createPerfil({
             user_id : user.id,
             role    : 'inquilino',
@@ -40,7 +38,6 @@ export default function PerfilForm() {
     })();
   }, [user]);
 
-  /* ---------- handlers ---------- */
   const handleChange = (e) =>
     setPerfil({ ...perfil, [e.target.name]: e.target.value });
 
@@ -74,14 +71,12 @@ export default function PerfilForm() {
     alert('Perfil atualizado!');
   };
 
-  /* ---------- UI ---------- */
   if (loading) return <p>A carregar…</p>;
   if (!perfil)  return <p>Não foi possível carregar o perfil.</p>;
 
   return (
     <form onSubmit={handleSave} className="max-w-md space-y-4">
 
-      {/* avatar + upload */}
       <div className="d-flex align-items-center gap-3">
         <img
           src={perfil.foto_url || 'https://placehold.co/80'}

@@ -57,7 +57,6 @@ export const uploadAvatar = async (file, userId) => {
   return fotoUrl;
 };
 
-/* ---------- ADMIN: gerir contas ---------- */
 export const fetchTodosPerfis = async () => {
   const { data, error } = await supabase.from('perfis').select('*').order('email');
   if (error) throw error;
