@@ -1,40 +1,54 @@
+import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
+import { FiLogOut } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiHome, FiTool, FiFileText, FiPlusCircle, FiSettings, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../auth/AuthContext';
 
-const Navbar = () => {
-  const { logout } = useAuth();
+export default function TopBar() {
+  const { perfil, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  if (!perfil) return null;
 
   return (
-  <nav className="navbar navbar-expand-lg bg-white shadow fixed-top px-4 py-3 d-flex justify-content-between align-items-center">
-      <div className="d-flex gap-4 align-items-center">
-        <Link to="/condominios" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiHome /> Condomínios
-        </Link>
-        <Link to="/gestao-pedidos" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiSettings /> Gestão de Pedidos
-        </Link>
-        <Link to="/novo-pedido" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiPlusCircle /> Novo Pedido
-        </Link>
-        <Link to="/faturas" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiFileText /> Faturas
-        </Link>
-      </div>
-      <button
-        onClick={handleLogout}
-        className="btn btn-link text-danger d-flex align-items-center gap-1 fw-medium text-decoration-none"
-      >
-        <FiLogOut /> Logout
-         </button>
-    </nav>
-  );
-};
+    <Navbar bg="light" expand="lg" className="shadow-sm mb-3 fixed-top">
+      <Container>
+        <Navbar.Brand as={Link} to="/condominios">Gestão</Navbar.Brand>
 
-export default Navbar;
+        <Navbar.Toggle aria-controls="main-nav" />
+        <Navbar.Collapse id="main-nav">
+          <Nav className="me-auto">
+            <Nav.Link as={Link} to="/condominios">Condomínios</Nav.Link>
+
+            {perfil.role === 'inquilino' &&
+              <Nav.Link as={Link} to="/novo-pedido">Novo&nbsp;Pedido</Nav.Link>}
+
+            {['admin', 'senhorio'].includes(perfil.role) &&
+              <Nav.Link as={Link} to="/gestao-pedidos">Gestão&nbsp;Pedidos</Nav.Link>}
+
+            <Nav.Link as={Link} to="/faturas">Faturas</Nav.Link>
+            <Nav.Link as={Link} to="/conta">Conta</Nav.Link>
+          </Nav>
+
+          <Nav>
+            <NavDropdown
+              align="end"
+              title={
+                <img
+                  src={perfil.foto_url || 'https://placehold.co/32'}
+                  alt="avatar"
+                  className="rounded-circle"
+                  width="32" height="32"
+                />
+              }
+            >
+              <NavDropdown.Item onClick={() => { logout(); navigate('/login'); }}>
+                <FiLogOut className="me-2" />
+                Logout
+              </NavDropdown.Item>
+            </NavDropdown>
+          </Nav>
+        </Navbar.Collapse>
+      </Container>
+    </Navbar>
+  );
+}
