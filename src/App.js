@@ -11,6 +11,9 @@ import PagamentoRendaPage from './pages/PagamentoRendaPage';
 import FaturasPage from './pages/FaturasPage';
 import ContaPage from './pages/ContaPage';
 import Navbar from './components/Navbar';
+import PagamentosPage   from './pages/PagamentosPage';
+import GestaoContasPage from './pages/GestaoContasPage';
+import AdminRoute       from './auth/AdminRoute';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -30,6 +33,9 @@ function AppContent() {
           <Route path="/pagamentos" element={<PrivateRoute><PagamentoRendaPage /></PrivateRoute>} />
           <Route path="/faturas" element={<PrivateRoute><FaturasPage /></PrivateRoute>} />
           <Route path="/conta" element={<PrivateRoute><ContaPage /></PrivateRoute>} />
+          <Route path="/pagamentos" element={<PrivateRoute><PagamentosPage /></PrivateRoute>} />
+          <Route path="/gestao-contas" element={<AdminRoute><GestaoContasPage /></AdminRoute>} />
+
 
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

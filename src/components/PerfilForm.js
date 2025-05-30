@@ -1,6 +1,7 @@
+// src/components/PerfilForm.js
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { fetchPerfil, updatePerfil } from '../api/perfis';
+import { fetchPerfil, createPerfil, updatePerfil } from '../api/perfis';
 import { useAuth } from '../auth/AuthContext';
 
 const bucket = 'avatars';
@@ -8,50 +9,57 @@ const bucket = 'avatars';
 export default function PerfilForm() {
   const { user } = useAuth();
   const [perfil, setPerfil]   = useState(null);
-  const [email,  setEmail]    = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving,  setSaving]  = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [saving,    setSaving]    = useState(false);
 
-
+  /* ---------- carregar ou criar perfil ---------- */
   useEffect(() => {
     if (!user) return;
 
     (async () => {
       try {
-        const p = await fetchPerfil(user.id);
-        setPerfil(p);
+        let p = await fetchPerfil(user.id);
 
-        setEmail(user.email);
+        if (!p) {
+          // cria perfil default se não existir
+          await createPerfil({
+            user_id : user.id,
+            role    : 'inquilino',
+            nome    : '',
+            foto_url: null,
+          });
+          p = await fetchPerfil(user.id);
+        }
+        setPerfil(p);
       } catch (err) {
         console.error('PERFIL-FORM-ERROR →', err);
+      } finally {
+        setLoading(false);
       }
     })();
   }, [user]);
 
-
+  /* ---------- handlers ---------- */
   const handleChange = (e) =>
     setPerfil({ ...perfil, [e.target.name]: e.target.value });
 
   const uploadFoto = async (e) => {
     const file = e.target.files[0];
-    if (!file || !user) return;
+    if (!file) return;
     setUploading(true);
 
-    const path = `${user.id}-${Date.now()}`;
+    const path = `${user.id}/${Date.now()}_${file.name}`;
     const { error: upErr } = await supabase
       .storage
       .from(bucket)
       .upload(path, file, { upsert: true });
 
     if (upErr) {
-      console.error('UPLOAD-ERROR →', upErr);
       alert('Falhou o upload.');
+      console.error(upErr);
     } else {
-      const { data } = supabase
-        .storage
-        .from(bucket)
-        .getPublicUrl(path);
-
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
       await updatePerfil(user.id, { foto_url: data.publicUrl });
       setPerfil({ ...perfil, foto_url: data.publicUrl });
     }
@@ -60,24 +68,27 @@ export default function PerfilForm() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!user) return;
     setSaving(true);
-
     await updatePerfil(user.id, { nome: perfil.nome });
     setSaving(false);
     alert('Perfil atualizado!');
   };
 
-  if (!perfil) return null;
+  /* ---------- UI ---------- */
+  if (loading) return <p>A carregar…</p>;
+  if (!perfil)  return <p>Não foi possível carregar o perfil.</p>;
 
   return (
     <form onSubmit={handleSave} className="max-w-md space-y-4">
 
-      <div className="flex items-center gap-4">
+      {/* avatar + upload */}
+      <div className="d-flex align-items-center gap-3">
         <img
           src={perfil.foto_url || 'https://placehold.co/80'}
           alt="avatar"
-          className="w-20 h-20 rounded-full object-cover border"
+          className="rounded-circle border"
+          width="80"
+          height="80"
         />
         <input
           type="file"
@@ -87,22 +98,24 @@ export default function PerfilForm() {
         />
       </div>
 
+      {/* nome */}
       <input
         name="nome"
         value={perfil.nome || ''}
         onChange={handleChange}
-        className="w-full border p-2 rounded"
+        className="form-control"
         placeholder="Nome"
       />
 
+      {/* email (read-only) */}
       <input
-        value={email}
+        value={user.email}
         readOnly
-        className="w-full border p-2 rounded bg-gray-50"
+        className="form-control-plaintext"
       />
 
       <button
-        className="bg-blue-600 text-white px-4 py-2 rounded"
+        className="btn btn-primary"
         disabled={saving}
       >
         {saving ? 'A guardar…' : 'Guardar'}

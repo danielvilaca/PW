@@ -56,3 +56,20 @@ export const uploadAvatar = async (file, userId) => {
 
   return fotoUrl;
 };
+
+/* ---------- ADMIN: gerir contas ---------- */
+export const fetchTodosPerfis = async () => {
+  const { data, error } = await supabase.from('perfis').select('*').order('email');
+  if (error) throw error;
+  return data;
+};
+
+export const updatePerfilAdmin = async (id, updates) => {
+  const { error } = await supabase.from('perfis').update(updates).eq('id', id);
+  if (error) throw error;
+};
+
+export const eliminarPerfil = async (id) => {
+  const { error } = await supabase.from('perfis').delete().eq('id', id);
+  if (error) throw error;
+};

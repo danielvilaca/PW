@@ -1,54 +1,93 @@
-import { Navbar, Nav, Container, NavDropdown } from 'react-bootstrap';
-import { FiLogOut } from 'react-icons/fi';
+// src/components/Navbar.js
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
-export default function TopBar() {
-  const { perfil, logout } = useAuth();
+export default function Navbar() {
+  const { user, perfil, logout } = useAuth();
   const navigate = useNavigate();
 
-  if (!perfil) return null;
+  if (!user) return null; // navbar só aparece autenticado
+
+  const isAdmin = perfil?.role === 'admin';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
-    <Navbar bg="light" expand="lg" className="shadow-sm mb-3 fixed-top">
-      <Container>
-        <Navbar.Brand as={Link} to="/condominios">Gestão</Navbar.Brand>
+    <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+      <div className="container-fluid">
 
-        <Navbar.Toggle aria-controls="main-nav" />
-        <Navbar.Collapse id="main-nav">
-          <Nav className="me-auto">
-            <Nav.Link as={Link} to="/condominios">Condomínios</Nav.Link>
+        {/* Marca / título */}
+        <Link className="navbar-brand fw-bold" to="/condominios">
+          Gestão
+        </Link>
 
-            {perfil.role === 'inquilino' &&
-              <Nav.Link as={Link} to="/novo-pedido">Novo&nbsp;Pedido</Nav.Link>}
+        {/* Botão mobile */}
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+          aria-controls="mainNavbar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span className="navbar-toggler-icon" />
+        </button>
 
-            {['admin', 'senhorio'].includes(perfil.role) &&
-              <Nav.Link as={Link} to="/gestao-pedidos">Gestão&nbsp;Pedidos</Nav.Link>}
+        {/* Links */}
+        <div className="collapse navbar-collapse" id="mainNavbar">
+          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
 
-            <Nav.Link as={Link} to="/faturas">Faturas</Nav.Link>
-            <Nav.Link as={Link} to="/conta">Conta</Nav.Link>
-          </Nav>
+            <li className="nav-item">
+              <Link className="nav-link" to="/condominios">
+                <i className="bi bi-house" /> Condomínios
+              </Link>
+            </li>
 
-          <Nav>
-            <NavDropdown
-              align="end"
-              title={
-                <img
-                  src={perfil.foto_url || 'https://placehold.co/32'}
-                  alt="avatar"
-                  className="rounded-circle"
-                  width="32" height="32"
-                />
-              }
-            >
-              <NavDropdown.Item onClick={() => { logout(); navigate('/login'); }}>
-                <FiLogOut className="me-2" />
-                Logout
-              </NavDropdown.Item>
-            </NavDropdown>
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+            <li className="nav-item">
+              <Link className="nav-link" to="/gestao-pedidos">
+                <i className="bi bi-tools" /> Gestão Pedidos
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/pagamentos">
+                <i className="bi bi-cash-stack" /> Pagamentos
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/faturas">
+                <i className="bi bi-file-earmark-text" /> Faturas
+              </Link>
+            </li>
+
+            {/* Só aparece para admin */}
+            {isAdmin && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/gestao-contas">
+                  <i className="bi bi-people" /> Gestão Contas
+                </Link>
+              </li>
+            )}
+
+            {/* Página pessoal (conta) */}
+            <li className="nav-item">
+              <Link className="nav-link" to="/conta">
+                <i className="bi bi-person-circle" /> {perfil?.nome || user.email}
+              </Link>
+            </li>
+          </ul>
+
+          {/* Botão logout */}
+          <button onClick={handleLogout} className="btn btn-outline-danger">
+            <i className="bi bi-box-arrow-right" /> Logout
+          </button>
+        </div>
+      </div>
+    </nav>
   );
 }
