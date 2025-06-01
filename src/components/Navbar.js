@@ -1,10 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { FiHome, FiTool, FiFileText, FiPlusCircle, FiSettings, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../auth/AuthContext';
 
-const Navbar = () => {
-  const { logout } = useAuth();
+export default function Navbar() {
+  const { user, perfil, logout } = useAuth();
   const navigate = useNavigate();
+
+  if (!user) return null; // navbar só aparece autenticado
+
+  const isAdmin = perfil?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -12,29 +15,78 @@ const Navbar = () => {
   };
 
   return (
-  <nav className="navbar navbar-expand-lg bg-white shadow fixed-top px-4 py-3 d-flex justify-content-between align-items-center">
-      <div className="d-flex gap-4 align-items-center">
-        <Link to="/condominios" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiHome /> Condomínios
+    <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+      <div className="container-fluid">
+
+        {/* Marca / título */}
+        <Link className="navbar-brand fw-bold" to="/condominios">
+          Gestão
         </Link>
-        <Link to="/gestao-pedidos" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiSettings /> Gestão de Pedidos
-        </Link>
-        <Link to="/novo-pedido" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiPlusCircle /> Novo Pedido
-        </Link>
-        <Link to="/faturas" className="text-dark d-flex align-items-center gap-1 fw-medium text-decoration-none">
-          <FiFileText /> Faturas
-        </Link>
+
+        {/* Botão mobile */}
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+          aria-controls="mainNavbar"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span className="navbar-toggler-icon" />
+        </button>
+
+        {/* Links */}
+        <div className="collapse navbar-collapse" id="mainNavbar">
+          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/condominios">
+                <i className="bi bi-house" /> Condomínios
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/gestao-pedidos">
+                <i className="bi bi-tools" /> Gestão Pedidos
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/pagamentos">
+                <i className="bi bi-cash-stack" /> Pagamentos
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/faturas">
+                <i className="bi bi-file-earmark-text" /> Faturas
+              </Link>
+            </li>
+
+            {/* Só aparece para admin */}
+            {isAdmin && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/gestao-contas">
+                  <i className="bi bi-people" /> Gestão Contas
+                </Link>
+              </li>
+            )}
+
+            {/* Página pessoal (conta) */}
+            <li className="nav-item">
+              <Link className="nav-link" to="/conta">
+                <i className="bi bi-person-circle" /> {perfil?.nome || user.email}
+              </Link>
+            </li>
+          </ul>
+
+          {/* Botão logout */}
+          <button onClick={handleLogout} className="btn btn-outline-danger">
+            <i className="bi bi-box-arrow-right" /> Logout
+          </button>
+        </div>
       </div>
-      <button
-        onClick={handleLogout}
-        className="btn btn-link text-danger d-flex align-items-center gap-1 fw-medium text-decoration-none"
-      >
-        <FiLogOut /> Logout
-         </button>
     </nav>
   );
-};
-
-export default Navbar;
+}

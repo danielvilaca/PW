@@ -1,4 +1,3 @@
-// src/pages/CondominiosPage.js
 import { useAuth } from '../auth/AuthContext';
 import CondominioCard from '../components/CondominioCard';
 import React, { useEffect, useState } from 'react';
@@ -63,7 +62,6 @@ function CondominiosPage() {
         </button>
       </div>
 
-      {/* Cards resumidos do topo */}
       <div className="row mb-4">
         <div className="col-md-4">
           <div className="card text-bg-primary shadow-sm">
@@ -99,7 +97,6 @@ function CondominiosPage() {
         </div>
       </div>
 
-      {/* Lista de condomínios */}
       <div className="row">
         {condominios.map((cond) => (
           <div key={cond.id} className="col-md-4 mb-4">
