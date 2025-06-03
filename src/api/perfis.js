@@ -15,8 +15,12 @@
   };
 
 
+
   export const createPerfil = async (perfil) => {
+    console.log('Dentro da função createPerfil →', perfil);  
+
     const { error } = await supabase.from('perfis').insert(perfil).select().single();
+    console.log('Acabaste ', error);
     if (error) throw error;
     return perfil;
   };

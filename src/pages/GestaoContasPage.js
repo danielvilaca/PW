@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil } from '../api/perfis';
+import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil, createPerfil } from '../api/perfis';
 import PerfilCardAdmin from '../components/PerfilCardAdmin';
 import { useAuth } from '../auth/AuthContext';
 
 export default function GestaoContasPage() {
+  //GUARDA PERFIL
   const { perfil } = useAuth();
+
   const role = perfil?.role;
 
   const [contas, setContas] = useState([]);
@@ -20,6 +22,8 @@ export default function GestaoContasPage() {
   const carregar = async () => setContas(await fetchTodosPerfis());
   useEffect(() => { carregar(); }, []);
 
+
+  //CENAS DO DANIEL
   const criar = async (e) => {
     e.preventDefault();
     await fetch('/auth/adminInvite'); // substituir pela lógica real
@@ -29,8 +33,10 @@ export default function GestaoContasPage() {
 
   const criarUtilizadorCompleto = async (e) => {
     e.preventDefault();
-    console.log('Novo utilizador:', novoUtilizador); // aqui chama Supabase ou API real
-    setNovoUtilizador({ nome: '', email: '', password: '', role: 'inquilino' });
+    
+    console.log('Novo utilizador:', novoUtilizador); // aqui chama Supabase o
+    await createPerfil(novoUtilizador);
+    console.log('Utilizador criado com sucesso', novoUtilizador);
     setMostrarModal(false);
     carregar();
   };
