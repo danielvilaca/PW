@@ -7,7 +7,7 @@ import Login from './pages/login';
 import CondominiosPage from './pages/CondominiosPage';
 import NovoPedidoPage from './pages/NovoPedidoPage';
 import GestaoPedidosPage from './pages/GestaoPedidosPage';
-import PagamentoRendaPage from './pages/PagamentoRendaPage';
+// import PagamentoRendaPage from './pages/PagamentoRendaPage';
 import FaturasPage from './pages/FaturasPage';
 import ContaPage from './pages/ContaPage';
 import Navbar from './components/Navbar';
@@ -30,7 +30,7 @@ function AppContent() {
           <Route path="/condominios" element={<PrivateRoute><CondominiosPage /></PrivateRoute>} />
           <Route path="/novo-pedido" element={<PrivateRoute><NovoPedidoPage /></PrivateRoute>} />
           <Route path="/gestao-pedidos" element={<PrivateRoute><GestaoPedidosPage /></PrivateRoute>} />
-          <Route path="/pagamentos" element={<PrivateRoute><PagamentoRendaPage /></PrivateRoute>} />
+          <Route path="/pagamentos" element={<PrivateRoute><PagamentosPage /></PrivateRoute>} />
           <Route path="/faturas" element={<PrivateRoute><FaturasPage /></PrivateRoute>} />
           <Route path="/conta" element={<PrivateRoute><ContaPage /></PrivateRoute>} />
           <Route path="/pagamentos" element={<PrivateRoute><PagamentosPage /></PrivateRoute>} />
