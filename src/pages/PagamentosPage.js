@@ -1,33 +1,59 @@
 import { useEffect, useState } from 'react';
 import { fetchPagamentos } from '../api/pagamentos';
 import { supabase } from '../services/supabaseClient';
-
+import CriarPagamentoForm from '../components/CriarPagamentoForm';
 export default function PagamentosPage() {
   const [pagamentos, setPagamentos] = useState([]);
 
+  const carregar = async () => {
+    const user = (await supabase.auth.getUser()).data.user;
+    const lista = await fetchPagamentos(false, user.id);
+    setPagamentos(lista);
+  };
+
   useEffect(() => {
-    const carregar = async () => {
-      // Vai buscar o utilizador autenticado (importante!)
-      const user = (await supabase.auth.getUser()).data.user;
-      // Busca só os pagamentos do próprio user
-      const lista = await fetchPagamentos(false, user.id);
-      setPagamentos(lista);
-    };
     carregar();
   }, []);
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-xl font-bold mb-4">Pagamentos de Renda</h1>
-      <div>
-        {pagamentos.length === 0 && <div className="text-gray-500">Sem pagamentos registados.</div>}
-        {pagamentos.map(pg => (
-          <div key={pg.id} className="border p-3 my-2 flex justify-between">
-            <span>
-              <strong>{pg.descricao}</strong> | {pg.valor} € | {pg.estado} | {pg.data_pg}
-            </span>
-          </div>
-        ))}
+    <div className="container py-5">
+      <h1 className="mb-4">Pagamentos de Renda</h1>
+      <CriarPagamentoForm onCreated={carregar} />
+
+      <div className="table-responsive">
+        <table className="table table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Descrição</th>
+              <th>Valor (€)</th>
+              <th>Estado</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagamentos.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center text-secondary">Sem pagamentos registados.</td>
+              </tr>
+            ) : (
+              pagamentos.map(pg => (
+                <tr key={pg.id}>
+                  <td>{pg.tipo ? pg.tipo.charAt(0).toUpperCase() + pg.tipo.slice(1) : '-'}</td>
+                  <td>{pg.descricao}</td>
+                  <td>{pg.valor}</td>
+                  <td>
+                    {pg.estado === 'pago'
+                      ? <span className="badge bg-success">Pago</span>
+                      : <span className="badge bg-warning text-dark">Pendente</span>
+                    }
+                  </td>
+                  <td>{pg.data_pg}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
