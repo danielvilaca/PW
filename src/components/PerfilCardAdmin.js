@@ -39,6 +39,14 @@ const PerfilCardAdmin = ({ perfil, onEdit, onDelete, onToggleValidar }) => {
 
           <button
             type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => onEditInfo(perfil)}
+          >
+            Dados
+          </button>
+
+          <button
+            type="button"
             className="btn btn-outline-danger btn-sm"
             onClick={() => onDelete(perfil)}
           >

@@ -76,7 +76,10 @@
   };
 
   export const updatePerfilAdmin = async (id, updates) => {
-    const { error } = await supabase.from('perfis').update(updates).eq('id', id);
+    const { error } = await supabase
+    .from('perfis')
+    .update(updates)
+    .eq('id', id);
     if (error) throw error;
   };
 

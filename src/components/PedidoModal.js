@@ -49,9 +49,11 @@ const PedidoModal = ({ pedido, onClose, onGuardar }) => {
         <h3 className="font-medium mb-2">Orçamentos</h3>
         {orcs.map(o => <OrcamentoCard key={o.id} orc={o} />)}
 
-        {/* Só permite submeter orçamento se ainda dentro do prazo */}
         {new Date() < new Date(pedido.validade_orcamentos) && (
-          <OrcamentoForm pedidoId={pedido.id} onFinish={() => fetchOrcamentos(pedido.id).then(setOrcs)} />
+          <OrcamentoForm
+            pedidoId={pedido.id}
+            onFinish={() => fetchOrcamentos(pedido.id).then(setOrcs)}
+          />
         )}
 
         <button onClick={onClose} className="mt-4 text-gray-600 hover:underline text-sm">Fechar</button>

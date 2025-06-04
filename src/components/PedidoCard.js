@@ -1,57 +1,74 @@
-import React from 'react';
-import { FiCalendar, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import OrcamentoForm from './OrcamentoForm';
+import OrcamentoCard from './OrcamentoCard';
+import { fetchOrcamentos } from '../api/orcamentos';
 
-const PedidoCard = ({ pedido, onVerDetalhes, onEditar, onEliminar }) => {
-  const estadoCor = {
-    Aberto: 'primary',
-    EmAnalise: 'warning',
-    Concluído: 'success',
-    Cancelado: 'secondary',
-  };
+const PedidoCard = ({ pedido, onEdit, onDelete }) => {
+  const { perfil } = useAuth();
+  const isInquilino = perfil?.role === 'inquilino';
 
-  const badgeColor = estadoCor[pedido.estado] || 'dark';
+  const [expand, setExpand] = useState(false);
+  const [orcs, setOrcs] = useState([]);
+
+  useEffect(() => {
+    if (expand) fetchOrcamentos(pedido.id).then(setOrcs);
+  }, [expand, pedido.id]);
 
   return (
-    <div className="card bg-light border-0 shadow-sm rounded-4 mb-4">
-      <div className="card-body">
-        {/* Título e descrição */}
-        <h5 className="card-title mb-1">{pedido.titulo}</h5>
-        <p className="text-muted small mb-2">{pedido.descricao}</p>
-
-        {/* Estado + Validade */}
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <span className={`badge bg-${badgeColor}`}>{pedido.estado}</span>
-          <small className="text-muted d-flex align-items-center gap-1">
-            <FiCalendar /> {pedido.validade_orcamentos}
-          </small>
+    <div className="bg-white shadow p-4 rounded mb-3">
+      <div className="flex justify-between items-center">
+        <div>
+          <h4 className="font-semibold">{pedido.titulo}</h4>
+          <p className="text-xs text-gray-500">{pedido.descricao}</p>
         </div>
 
-        <hr className="my-2" />
-
-        {/* Botões de ação */}
-        <div className="d-flex gap-2 flex-wrap">
-          <button
-            onClick={() => onVerDetalhes(pedido)}
-            className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-          >
-            <FiEye /> Detalhes
-          </button>
-
-          <button
-            onClick={() => onEditar(pedido)}
-            className="btn btn-outline-warning btn-sm text-dark d-flex align-items-center gap-1"
-          >
-            <FiEdit2 /> Editar
-          </button>
-
-          <button
-            onClick={() => onEliminar(pedido.id)}
-            className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-          >
-            <FiTrash2 /> Eliminar
-          </button>
-        </div>
+        <button
+          onClick={() => setExpand(!expand)}
+          className="text-blue-600 hover:underline text-sm"
+        >
+          {expand ? 'Fechar' : 'Detalhes'}
+        </button>
       </div>
+
+      {expand && (
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-gray-500">
+            Validade: {pedido.validade_orcamentos}
+          </p>
+
+          <h5 className="font-medium">Orçamentos</h5>
+          {orcs.map((o) => (
+            <OrcamentoCard key={o.id} orc={o} />
+          ))}
+
+          {isInquilino &&
+            new Date() < new Date(pedido.validade_orcamentos) && (
+              <OrcamentoForm
+                pedidoId={pedido.id}
+                onFinish={() => fetchOrcamentos(pedido.id).then(setOrcs)}
+              />
+            )}
+        </div>
+      )}
+
+      {/* botões admin/senhorio – opcional */}
+      {(perfil?.role === 'admin' || perfil?.role === 'senhorio') && (
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={() => onEdit(pedido)}
+            className="text-yellow-600 hover:underline text-sm"
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => onDelete(pedido.id)}
+            className="text-red-600 hover:underline text-sm"
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
     </div>
   );
 };

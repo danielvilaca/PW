@@ -1,35 +1,39 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import { fetchPagamentos } from '../api/pagamentos';
-import PagamentoCard from '../components/PagamentoCard'; // substitui FaturaCard por este
+import PagamentoCard from '../components/PagamentoCard';
 
 export default function PagamentoRendaPage() {
+  const { user, perfil } = useAuth();
+  const isAdmin = perfil?.role === 'admin';
+
   const [pagamentos, setPagamentos] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  const carregar = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchPagamentos();
+  useEffect(() => {
+    if (!user) return;
+    const carregar = async () => {
+      const data = await fetchPagamentos(isAdmin, user.id);
       setPagamentos(data);
-    } catch (err) {
-      console.error('Erro ao carregar pagamentos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    carregar();
+  }, [user, isAdmin]);
 
-  useEffect(() => { carregar(); }, []);
+  const remover = () => {};
+  const pagar = () => alert('A abrir métodos de pagamento… Pago!');
 
- return (
-  <div className="max-w-4xl mx-auto p-4">
-    <h1 className="text-2xl font-bold mb-4">Pagamentos de Renda</h1>
-    {loading && <p className="text-sm text-gray-500 mb-2">A processar…</p>}
-    
-    {pagamentos.map(p => (
-      <PagamentoCard key={p.id} pg={p} />
-    ))}
-  </div>
-);
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Pagamentos de Renda</h1>
 
-
+      {pagamentos.map((p) => (
+        <PagamentoCard
+          key={p.id}
+          pg={p}
+          isAdmin={isAdmin}
+          onDelete={remover}
+          onPay={pagar}
+        />
+      ))}
+    </div>
+  );
 }

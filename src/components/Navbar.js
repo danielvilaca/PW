@@ -40,12 +40,17 @@ export default function Navbar() {
         <div className="collapse navbar-collapse" id="mainNavbar">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
 
-            <li className="nav-item">
-              <Link className="nav-link" to="/condominios">
-                <i className="bi bi-house" /> Condomínios
-              </Link>
-            </li>
-
+            {/* Condomínios & Gestão de Pedidos → só admin ou senhorio */}
+            {(perfil?.role === 'admin' || perfil?.role === 'senhorio') && (
+              <>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/condominios">
+                    <i className="bi bi-house" /> Condomínios
+                  </Link>
+                </li>
+              </>
+            )}
+            
             <li className="nav-item">
               <Link className="nav-link" to="/gestao-pedidos">
                 <i className="bi bi-tools" /> Gestão Pedidos
