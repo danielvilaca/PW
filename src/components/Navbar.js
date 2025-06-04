@@ -7,7 +7,7 @@ export default function Navbar() {
 
   if (!user) return null; // navbar só aparece autenticado
 
-  const isAdmin = perfil?.role === 'admin';
+  const role = perfil?.role;
 
   const handleLogout = () => {
     logout();
@@ -39,19 +39,22 @@ export default function Navbar() {
         {/* Links */}
         <div className="collapse navbar-collapse" id="mainNavbar">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-
             <li className="nav-item">
               <Link className="nav-link" to="/condominios">
                 <i className="bi bi-house" /> Condomínios
               </Link>
             </li>
 
-            <li className="nav-item">
-              <Link className="nav-link" to="/gestao-pedidos">
-                <i className="bi bi-tools" /> Gestão Pedidos
-              </Link>
-            </li>
+            {/* Gestão Pedidos */}
+            {(role === 'admin' || role === 'senhorio') && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/gestao-pedidos">
+                  <i className="bi bi-tools" /> Gestão Pedidos
+                </Link>
+              </li>
+            )}
 
+            {/* Pagamentos e Faturas (todos os roles) */}
             <li className="nav-item">
               <Link className="nav-link" to="/pagamentos">
                 <i className="bi bi-cash-stack" /> Pagamentos
@@ -64,8 +67,8 @@ export default function Navbar() {
               </Link>
             </li>
 
-            {/* Só aparece para admin */}
-            {isAdmin && (
+            {/* Gestão Contas só admin */}
+            {role === 'admin' && (
               <li className="nav-item">
                 <Link className="nav-link" to="/gestao-contas">
                   <i className="bi bi-people" /> Gestão Contas
@@ -73,7 +76,7 @@ export default function Navbar() {
               </li>
             )}
 
-            {/* Página pessoal (conta) */}
+            {/* Conta pessoal (todos os roles) */}
             <li className="nav-item">
               <Link className="nav-link" to="/conta">
                 <i className="bi bi-person-circle" /> {perfil?.nome || user.email}

@@ -37,6 +37,7 @@ const PedidoForm = ({ onSubmit }) => {
           className="form-control"
           placeholder="Introduz o título do pedido"
           required
+          autoComplete="off"
         />
       </div>
 
@@ -52,7 +53,7 @@ const PedidoForm = ({ onSubmit }) => {
           onChange={handleChange}
           className="form-control"
           rows="3"
-          placeholder="Escreve uma descrição opcional..."
+          placeholder="Escreve uma descrição (opcional)..."
         />
       </div>
 
@@ -72,9 +73,11 @@ const PedidoForm = ({ onSubmit }) => {
         />
       </div>
 
-      {/* Botão */}
       <div className="d-grid">
-        <button type="submit" className="btn btn-primary btn-lg d-flex justify-content-center align-items-center gap-2">
+        <button
+          type="submit"
+          className="btn btn-primary btn-lg d-flex justify-content-center align-items-center gap-2"
+        >
           <FiPlusCircle /> Criar Pedido
         </button>
       </div>

@@ -1,7 +1,9 @@
 export default function Spinner() {
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-white/60 z-50">
-      <div className="animate-spin h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full" />
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style={{zIndex: 1055}}>
+      <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} role="status">
+        <span className="visually-hidden">A carregar...</span>
+      </div>
     </div>
   );
 }

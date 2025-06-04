@@ -2,10 +2,13 @@ import React from 'react';
 import { FiCalendar, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 const PedidoCard = ({ pedido, onVerDetalhes, onEditar, onEliminar }) => {
+  // Mapeamento de estados para cores Bootstrap
   const estadoCor = {
     Aberto: 'primary',
-    EmAnalise: 'warning',
+    'Em Análise': 'warning',
+    'EmAnalise': 'warning', // caso venha assim
     Concluído: 'success',
+    'Concluído': 'success',
     Cancelado: 'secondary',
   };
 
@@ -30,26 +33,35 @@ const PedidoCard = ({ pedido, onVerDetalhes, onEditar, onEliminar }) => {
 
         {/* Botões de ação */}
         <div className="d-flex gap-2 flex-wrap">
-          <button
-            onClick={() => onVerDetalhes(pedido)}
-            className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-          >
-            <FiEye /> Detalhes
-          </button>
+          {onVerDetalhes && (
+            <button
+              onClick={() => onVerDetalhes(pedido)}
+              className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+              type="button"
+            >
+              <FiEye /> Detalhes
+            </button>
+          )}
 
-          <button
-            onClick={() => onEditar(pedido)}
-            className="btn btn-outline-warning btn-sm text-dark d-flex align-items-center gap-1"
-          >
-            <FiEdit2 /> Editar
-          </button>
+          {onEditar && (
+            <button
+              onClick={() => onEditar(pedido)}
+              className="btn btn-outline-warning btn-sm text-dark d-flex align-items-center gap-1"
+              type="button"
+            >
+              <FiEdit2 /> Editar
+            </button>
+          )}
 
-          <button
-            onClick={() => onEliminar(pedido.id)}
-            className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-          >
-            <FiTrash2 /> Eliminar
-          </button>
+          {onEliminar && (
+            <button
+              onClick={() => onEliminar(pedido.id)}
+              className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+              type="button"
+            >
+              <FiTrash2 /> Eliminar
+            </button>
+          )}
         </div>
       </div>
     </div>

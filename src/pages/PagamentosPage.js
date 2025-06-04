@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { fetchPagamentos } from '../api/pagamentos';
 import { supabase } from '../services/supabaseClient';
 import CriarPagamentoForm from '../components/CriarPagamentoForm';
+import { useAuth } from '../auth/AuthContext';
+import { isAdmin, isSenhorio, isInquilino } from '../utils/roles';
+
 export default function PagamentosPage() {
+  const { perfil } = useAuth();
   const [pagamentos, setPagamentos] = useState([]);
 
   const carregar = async () => {
@@ -15,9 +19,22 @@ export default function PagamentosPage() {
     carregar();
   }, []);
 
+  // --- Validação de roles ---
+  if (!perfil) return <div className="container mt-5">A carregar...</div>;
+  if (!(isAdmin(perfil) || isSenhorio(perfil) || isInquilino(perfil))) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          Não tens permissões para aceder a esta página.
+        </div>
+      </div>
+    );
+  }
+  // --------------------------
+
   return (
     <div className="container py-5">
-      <h1 className="mb-4">Pagamentos de Renda</h1>
+      <h1 className="mb-4">Pagamentos </h1>
       <CriarPagamentoForm onCreated={carregar} />
 
       <div className="table-responsive">

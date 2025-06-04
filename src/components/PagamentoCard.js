@@ -1,14 +1,29 @@
 const PagamentoCard = ({ pg, onDelete }) => (
-  <div className="bg-white shadow p-4 rounded-lg flex justify-between items-center">
-    <div>
-      <h4 className="font-semibold">{pg.descricao}</h4>
-      <p className="text-xs text-gray-500">{pg.data_pg} — {pg.estado}</p>
-    </div>
-    <div className="flex items-center gap-4">
-      <span className="font-bold">{pg.valor} €</span>
-      <button onClick={() => onDelete(pg.id)} className="text-red-600 hover:underline text-sm">
-        Eliminar
-      </button>
+  <div className="card shadow-sm mb-3">
+    <div className="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <h5 className="card-title mb-1">{pg.descricao || <span className="text-muted">(sem descrição)</span>}</h5>
+        <p className="mb-1 text-muted small">
+          {pg.data_pg} —{' '}
+          {pg.estado === 'pago' ? (
+            <span className="badge bg-success">Pago</span>
+          ) : (
+            <span className="badge bg-warning text-dark">Pendente</span>
+          )}
+        </p>
+      </div>
+      <div className="d-flex align-items-center gap-3">
+        <span className="fw-bold fs-5">{pg.valor} €</span>
+        {onDelete && (
+          <button
+            type="button"
+            className="btn btn-outline-danger btn-sm"
+            onClick={() => onDelete(pg.id)}
+          >
+            Eliminar
+          </button>
+        )}
+      </div>
     </div>
   </div>
 );

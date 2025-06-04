@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil } from '../api/perfis';
 import PerfilCardAdmin from '../components/PerfilCardAdmin';
 import { useAuth } from '../auth/AuthContext';
+import { isAdmin } from '../utils/roles';
 
 export default function GestaoContasPage() {
   const { perfil } = useAuth();
-  const role = perfil?.role;
 
   const [contas, setContas] = useState([]);
   const [email, setEmail] = useState('');
@@ -29,7 +29,7 @@ export default function GestaoContasPage() {
 
   const criarUtilizadorCompleto = async (e) => {
     e.preventDefault();
-    console.log('Novo utilizador:', novoUtilizador); // aqui chama Supabase ou API real
+    // Chamar o método real de criar utilizador aqui!
     setNovoUtilizador({ nome: '', email: '', password: '', role: 'inquilino' });
     setMostrarModal(false);
     carregar();
@@ -48,13 +48,16 @@ export default function GestaoContasPage() {
     carregar();
   };
 
-  if (role !== 'admin') {
+  // ---- Validação de role ----
+  if (!perfil) return <div className="container mt-5">A carregar...</div>;
+  if (!isAdmin(perfil)) {
     return (
       <div className="container mt-5">
         <div className="alert alert-danger">Não tens permissões para aceder a esta página.</div>
       </div>
     );
   }
+  // ---------------------------
 
   return (
     <div className="container mt-5">

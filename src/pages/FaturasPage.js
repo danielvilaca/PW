@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { fetchFaturas, pagarFatura } from '../api/faturas';
 import FaturaCard from '../components/FaturaCard';
+import { useAuth } from '../auth/AuthContext';
+import { isAdmin, isSenhorio, isInquilino } from '../utils/roles';
 
 export default function FaturasPage() {
+  const { perfil } = useAuth();
   const [faturas, setFaturas] = useState([]);
 
   const carregarFaturas = async () => {
@@ -26,7 +29,21 @@ export default function FaturasPage() {
 
   useEffect(() => {
     carregarFaturas();
+    // eslint-disable-next-line
   }, []);
+
+  // --- Validação de Role ---
+  if (!perfil) return <div className="container mt-5">A carregar...</div>;
+  if (!(isAdmin(perfil) || isSenhorio(perfil) || isInquilino(perfil))) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          Não tens permissões para aceder a esta página.
+        </div>
+      </div>
+    );
+  }
+  // --- ------------------ ---
 
   return (
     <div className="container mx-auto px-4 py-6">

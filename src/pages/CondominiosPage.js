@@ -1,12 +1,12 @@
 import { useAuth } from '../auth/AuthContext';
+import { isAdmin, isSenhorio } from '../utils/roles';
 import CondominioCard from '../components/CondominioCard';
 import React, { useEffect, useState } from 'react';
 import CondominioChart from '../components/CondominioCharts';
 import { getCurrentWeather } from '../services/weatherService';
 
-
 function CondominiosPage() {
-  const { logout } = useAuth();
+  const { perfil, logout } = useAuth();
 
   const [condominios, setCondominios] = useState([
     {
@@ -49,9 +49,22 @@ function CondominiosPage() {
       );
       setCondominios(updated);
     }
-
     fetchAllWeather();
+    // eslint-disable-next-line
   }, []);
+
+  // ---- Validação de Role ----
+  if (!perfil) return <div>A carregar…</div>;
+  if (!(isAdmin(perfil) || isSenhorio(perfil))) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          Não tens permissões para aceder a esta página.
+        </div>
+      </div>
+    );
+  }
+  // ---------------------------
 
   return (
     <div className="container mt-5 py-5">
