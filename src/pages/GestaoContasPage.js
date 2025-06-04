@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil } from '../api/perfis';
+import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil, createPerfilAdmin } from '../api/perfis';
 import PerfilCardAdmin from '../components/PerfilCardAdmin';
 import { useAuth } from '../auth/AuthContext';
 
@@ -29,10 +29,15 @@ export default function GestaoContasPage() {
 
   const criarUtilizadorCompleto = async (e) => {
     e.preventDefault();
-    console.log('Novo utilizador:', novoUtilizador); // aqui chama Supabase ou API real
-    setNovoUtilizador({ nome: '', email: '', password: '', role: 'inquilino' });
-    setMostrarModal(false);
-    carregar();
+    try {
+      await createPerfilAdmin(novoUtilizador);
+      setNovoUtilizador({ nome: '', email: '', password: '', role: 'inquilino' });
+      setMostrarModal(false);
+      carregar();
+    } catch (err) {
+      console.error('ERRO ao criar utilizador →', err);
+      alert('Falhou a criação do perfil.');
+    }
   };
 
   const editarRole = async (perfil) => {

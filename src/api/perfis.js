@@ -21,6 +21,18 @@
     return perfil;
   };
 
+  // usado na Gestão de Contas – cria registo “não validado” sem user_id
+  export const createPerfilAdmin = async ({ nome, email, password, role }) => {
+    return createPerfil({
+      user_id   : null,       // só será preenchido quando o utilizador aceitar convite
+      nome,
+      email,
+      password,               // (texto simples enquanto não há Auth – ajustar se cifrares)
+      role,
+      validated : false
+    });
+  };
+
 
   export const updatePerfil = async (userId, updates) => {
     const { data, error } = await supabase
