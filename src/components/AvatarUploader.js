@@ -23,14 +23,33 @@ const AvatarUploader = () => {
   };
 
   return (
-    <div className="space-y-2">
-      <input type="file" accept="image/*" onChange={handleChange} />
+    <div className="mb-3">
+      {/* Label Bootstrap */}
+      <label htmlFor="avatarInput" className="form-label">
+        Alterar Avatar
+      </label>
+      {/* Input file Bootstrap */}
+      <input
+        className="form-control"
+        type="file"
+        id="avatarInput"
+        accept="image/*"
+        onChange={handleChange}
+      />
+      {/* Preview Bootstrap */}
       {preview && (
-        <img
-          src={preview}
-          alt="preview"
-          className="w-32 h-32 rounded-full border shadow"
-        />
+        <div className="mt-3 d-flex justify-content-center">
+          <img
+            src={preview}
+            alt="preview"
+            className="rounded-circle border shadow"
+            style={{
+              width: '8rem',
+              height: '8rem',
+              objectFit: 'cover',
+            }}
+          />
+        </div>
       )}
     </div>
   );
