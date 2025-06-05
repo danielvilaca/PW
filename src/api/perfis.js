@@ -11,7 +11,7 @@
       .single();
 
     if (error && error.code !== 'PGRST116') throw error; // 116 = row not found
-    return data;  // pode ser null se ainda não existir
+    return data;  //null se ainda não existir
   };
 
 
@@ -21,15 +21,15 @@
     return perfil;
   };
 
-  // usado na Gestão de Contas – cria registo “não validado” sem user_id
+  // Gestão de Contas, cria registo “não validado” sem user_id
   export const createPerfilAdmin = async ({ nome, email, password, role }) => {
     return createPerfil({
-      user_id   : null,       // só será preenchido quando o utilizador aceitar convite
+      user_id: null,
       nome,
       email,
-      password,               // (texto simples enquanto não há Auth – ajustar se cifrares)
+      password,
       role,
-      validated : false
+      validated: false
     });
   };
 
@@ -51,7 +51,7 @@
     const bucket = 'avatars';
     const filePath = `${userId}/${Date.now()}_${file.name}`;
 
-    // 1) upload (upsert sobrepõe)
+    //(upsert sobrepõe)
     const { error: upErr } = await supabase
       .storage
       .from(bucket)

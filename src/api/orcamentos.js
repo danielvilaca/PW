@@ -1,12 +1,19 @@
 import { supabase } from '../services/supabaseClient';
 
-/* ------------- INSERT ------------- */
+/**
+ *
+ * @param orc Objeto de orçamento a ser criado
+ */
 export async function createOrcamento(orc) {
   const { error } = await supabase.from('orcamentos').insert([orc]);
   if (error) throw error;
 }
 
-/* ------------- SELECT por pedido ------------- */
+/**
+ *
+ * @param pedidoId ID do pedido para buscar os orçamentos
+ * @returns
+ */
 export async function fetchOrcamentos(pedidoId) {
   const { data, error } = await supabase
     .from('orcamentos')
