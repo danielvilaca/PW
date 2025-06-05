@@ -1,12 +1,10 @@
 import { isPast } from 'date-fns';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import FaturasPDF from '../pages/FaturasPage';
-
+import { FaturasPDF } from '../pages/FaturasPage';
 
 const FaturaCard = ({ fatura, onPay }) => {
-  // Calcula a data de vencimento (dia 1 do mês)
   const vencimento = new Date(fatura.ano, fatura.mes - 1, 1);
-  const emAtraso = !fatura.pago && isPast(vencimento); //analisa de esta diferente de pago e se já passou e verifica a dataa que lhe dou e atual
+  const emAtraso = !fatura.pago && isPast(vencimento);
 
   return (
     <div
@@ -23,22 +21,14 @@ const FaturaCard = ({ fatura, onPay }) => {
       </div>
 
       {fatura.pago ? (
-        <a
-          href={fatura.pdf_url}
-          target="_blank"
-          rel="noreferrer"
-          className="link-primary text-decoration-underline"
+        <PDFDownloadLink
+          document={<FaturasPDF faturas={[fatura]} />}
+          fileName={`Fatura_${fatura.id}.pdf`}
+          className="btn btn-primary px-3 py-1"
         >
-          <PDFDownloadLink
-                         document={<FaturasPDF faturas={[fatura]} />}
-                         fileName={`Fatura_${fatura.id}.pdf`}
-                       >
-                         {({ loading }) => (loading ? 'Gerando PDF...' : 'Exportar PDF')}
-                       </PDFDownloadLink>
-        </a>
-      ) 
-      :
-      (
+          {({ loading }) => (loading ? 'Gerando PDF...' : 'Exportar PDF')}
+        </PDFDownloadLink>
+      ) : (
         <button
           onClick={() => onPay(fatura.id)}
           className="btn btn-success px-3 py-1"

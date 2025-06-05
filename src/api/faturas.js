@@ -1,4 +1,5 @@
 import { supabase } from '../services/supabaseClient';
+  import { Page, Text, View, Document, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
 // import jsPDF from 'jspdf';
 
 
