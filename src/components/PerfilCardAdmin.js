@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+
 const PerfilCardAdmin = ({ perfil, onEdit, onEditInfo, onDelete, onToggleValidar }) => {
   const { nome, email, role, validated } = perfil;
 
