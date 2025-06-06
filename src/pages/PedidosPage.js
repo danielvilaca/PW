@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchPedidos, criarPedido } from '../api/pedidos';
-import PedidoCard from '../components/PedidoCard';
+import PedidoCard from '../components/PedidoCard'; // já tendo o botão “Ver Detalhes”
 import PedidoForm from '../components/PedidoForm';
 
 const PedidosPage = () => {

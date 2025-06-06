@@ -1,86 +1,129 @@
+// src/components/OrcamentoForm.js
+
 import { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { createOrcamento } from '../api/orcamentos';
-import { useAuth } from '../auth/AuthContext';
 
-const BUCKET = 'orcamentos-anexos';
-
-export default function OrcamentoForm({ pedidoId, onFinish }) {
-  const { user } = useAuth();
-
+/**
+ * Formulário para submeter um orçamento.
+ * Chama onSubmit({ fornecedor, contacto, valor, anexo_url }) ao enviar.
+ */
+export default function OrcamentoForm({ onSubmit }) {
   const [fornecedor, setFornecedor] = useState('');
   const [contacto, setContacto]     = useState('');
   const [valor, setValor]           = useState('');
-  const [file, setFile]             = useState(null);
+  const [anexoUrl, setAnexoUrl]     = useState(null);
+  const [uploading, setUploading]   = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Faz upload direto no Supabase Storage no bucket "orcamentos"
+  const handleUploadAnexo = async (file) => {
+    if (!file) return null;
+    setUploading(true);
 
-    let anexo_url = null;
-    if (file) {
-      const path = `${pedidoId}-${Date.now()}-${file.name}`;
-      const { error } = await supabase
-        .storage
-        .from(BUCKET)
-        .upload(path, file, { upsert: true });
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
 
-      if (error) throw error;
+    const { data, error: uploadError } = await supabase.storage
+      .from('orcamentos')
+      .upload(filePath, file, { upsert: true });
 
-      anexo_url = supabase
-        .storage
-        .from(BUCKET)
-        .getPublicUrl(path).data.publicUrl;
+    if (uploadError) {
+      console.error('Erro no upload do anexo:', uploadError.message);
+      alert('Falha ao enviar anexo.');
+      setUploading(false);
+      return null;
     }
 
-    await createOrcamento({
-      pedido_id : pedidoId,
-      user_id   : user.id,
+    const { data: publicData } = supabase.storage
+      .from('orcamentos')
+      .getPublicUrl(filePath);
+
+    setUploading(false);
+    return publicData.publicUrl;
+  };
+
+  const handleChangeFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = await handleUploadAnexo(file);
+    if (url) {
+      setAnexoUrl(url);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!fornecedor || !contacto || !valor) {
+      alert('Por favor preencha todos os campos obrigatórios.');
+      return;
+    }
+    onSubmit({
       fornecedor,
       contacto,
       valor: Number(valor),
-      anexo_url,
+      anexo_url: anexoUrl,
     });
-
-    onFinish();
     setFornecedor('');
     setContacto('');
     setValor('');
-    setFile(null);
+    setAnexoUrl(null);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 border p-3 rounded">
-      <input
-        className="w-full border p-2 rounded"
-        placeholder="Fornecedor"
-        value={fornecedor}
-        onChange={(e) => setFornecedor(e.target.value)}
-        required
-      />
-      <input
-        className="w-full border p-2 rounded"
-        placeholder="Contacto"
-        value={contacto}
-        onChange={(e) => setContacto(e.target.value)}
-        required
-      />
-      <input
-        type="number"
-        step="0.01"
-        className="w-full border p-2 rounded"
-        placeholder="Valor (€)"
-        value={valor}
-        onChange={(e) => setValor(e.target.value)}
-        required
-      />
-      <input
-        type="file"
-        accept="image/*,.pdf"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
-
-      <button className="bg-green-600 text-white px-3 py-1 rounded">
-        Submeter orçamento
+    <form onSubmit={handleSubmit} className="max-w-md mb-4 space-y-4">
+      <div>
+        <label className="form-label">Fornecedor / Empresa</label>
+        <input
+          type="text"
+          value={fornecedor}
+          onChange={(e) => setFornecedor(e.target.value)}
+          className="form-control"
+          required
+        />
+      </div>
+      <div>
+        <label className="form-label">Contacto (telefone ou e-mail)</label>
+        <input
+          type="text"
+          value={contacto}
+          onChange={(e) => setContacto(e.target.value)}
+          className="form-control"
+          required
+        />
+      </div>
+      <div>
+        <label className="form-label">Valor (€)</label>
+        <input
+          type="number"
+          step="0.01"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          className="form-control"
+          required
+        />
+      </div>
+      <div>
+        <label className="form-label">Anexo (foto do orçamento)</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleChangeFile}
+          disabled={uploading}
+          className="form-control"
+        />
+        {uploading && <p className="form-text text-muted">Fazendo upload…</p>}
+        {anexoUrl && (
+          <p className="form-text">
+            Anexo carregado: <a href={anexoUrl} target="_blank" rel="noreferrer">Visualizar</a>
+          </p>
+        )}
+      </div>
+      <button
+        type="submit"
+        className="btn btn-success"
+        disabled={uploading}
+      >
+        {uploading ? 'Enviando…' : 'Submeter Orçamento'}
       </button>
     </form>
   );

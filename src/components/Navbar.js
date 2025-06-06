@@ -1,13 +1,12 @@
+// src/components/Navbar.js
+
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function Navbar() {
-  const { user, perfil, logout } = useAuth();
+  const { perfil, logout } = useAuth();
   const navigate = useNavigate();
-
-  if (!user) return null; // navbar só aparece autenticado
-
-  const isAdmin = perfil?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -15,81 +14,98 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+    <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
       <div className="container-fluid">
-
-        {/* Marca / título */}
-        <Link className="navbar-brand fw-bold" to="/condominios">
-          Gestão
+        {/* Logo / Marca */}
+        <Link className="navbar-brand" to="/condominios">
+          Gestão Condomínios
         </Link>
 
-        {/* Botão mobile */}
+        {/* Botão de toggle para telas menores */}
         <button
           className="navbar-toggler"
           type="button"
           data-bs-toggle="collapse"
-          data-bs-target="#mainNavbar"
-          aria-controls="mainNavbar"
+          data-bs-target="#navbarContent"
+          aria-controls="navbarContent"
           aria-expanded="false"
           aria-label="Toggle navigation"
         >
-          <span className="navbar-toggler-icon" />
+          <span className="navbar-toggler-icon"></span>
         </button>
 
-        {/* Links */}
-        <div className="collapse navbar-collapse" id="mainNavbar">
+        {/* Itens do menu */}
+        <div className="collapse navbar-collapse" id="navbarContent">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-
-            {/* Condomínios & Gestão de Pedidos → só admin ou senhorio */}
-            {(perfil?.role === 'admin' || perfil?.role === 'senhorio') && (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/condominios">
-                    <i className="bi bi-house" /> Condomínios
-                  </Link>
-                </li>
-              </>
-            )}
-            
+            {/* Sempre visível */}
             <li className="nav-item">
-              <Link className="nav-link" to="/gestao-pedidos">
-                <i className="bi bi-tools" /> Gestão Pedidos
+              <Link className="nav-link" to="/condominios">
+                Condomínios
               </Link>
             </li>
 
             <li className="nav-item">
-              <Link className="nav-link" to="/pagamentos">
-                <i className="bi bi-cash-stack" /> Pagamentos
+              <Link className="nav-link" to="/pedidos">
+                Pedidos
               </Link>
             </li>
 
             <li className="nav-item">
               <Link className="nav-link" to="/faturas">
-                <i className="bi bi-file-earmark-text" /> Faturas
+                Faturas
               </Link>
             </li>
 
-            {/* Só aparece para admin */}
-            {isAdmin && (
+            <li className="nav-item">
+              <Link className="nav-link" to="/pagamentos">
+                Pagamentos
+              </Link>
+            </li>
+
+            {/* Página “Conta” sempre disponível */}
+            <li className="nav-item">
+              <Link className="nav-link" to="/conta">
+                Minha Conta
+              </Link>
+            </li>
+
+            {/* Só exibir “Gestão de Contas” se for admin */}
+            {perfil?.role === 'admin' && (
               <li className="nav-item">
-                <Link className="nav-link" to="/gestao-contas">
-                  <i className="bi bi-people" /> Gestão Contas
+                <Link className="nav-link" to="/contas">
+                  Gestão de Contas
                 </Link>
               </li>
             )}
-
-            {/* Página pessoal (conta) */}
-            <li className="nav-item">
-              <Link className="nav-link" to="/conta">
-                <i className="bi bi-person-circle" /> {perfil?.nome || user.email}
-              </Link>
-            </li>
           </ul>
 
-          {/* Botão logout */}
-          <button onClick={handleLogout} className="btn btn-outline-danger">
-            <i className="bi bi-box-arrow-right" /> Logout
-          </button>
+          {/* Área do usuário no canto direito */}
+          <div className="d-flex align-items-center">
+            {perfil?.foto_url ? (
+              <img
+                src={perfil.foto_url}
+                alt="Avatar"
+                className="rounded-circle me-2"
+                style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+              />
+            ) : (
+              <span className="me-2">
+                <i className="bi bi-person-circle fs-4"></i>
+              </span>
+            )}
+            <div className="me-3 text-end">
+              <div className="fw-semibold">{perfil?.nome || ''}</div>
+              <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                {perfil?.email || ''}
+              </div>
+            </div>
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </nav>

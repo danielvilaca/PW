@@ -7,7 +7,7 @@ export default function GestaoPedidosPage() {
 
   /* carrega todos os pedidos ao montar */
   useEffect(() => {
-    fetchPedidos().then(setPedidos);
+    fetchPedidos({ isSenhorio: true, admin: isAdmin })
   }, []);
 
   /* handlers vazios (Opção A) */

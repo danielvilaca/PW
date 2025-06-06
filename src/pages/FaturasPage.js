@@ -1,18 +1,11 @@
 // src/pages/FaturasPage.js
+
 import { useEffect, useState } from 'react';
-import { fetchFaturas, pagarFatura } from '../api/faturas';
+import { fetchFaturas, updateFatura } from '../api/faturas'; // trocar pagarFatura por updateFatura
 import FaturaCard from '../components/FaturaCard';
 import { useAuth } from '../auth/AuthContext';
-import {
-  Page,
-  Text,
-  View,
-  Document,
-  StyleSheet,
-  PDFDownloadLink,
-} from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
 
-/** Estilos para o PDF */
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
@@ -31,20 +24,15 @@ const styles = StyleSheet.create({
   },
 });
 
-/**
- * Componente que gera um PDF com um array de faturas.
- * Cada fatura é exibida numa section.
- */
 export function FaturasPDF({ faturas }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Extrato de Faturas</Text>
+        <Text style={styles.title}>Extrato</Text>
         {faturas.map((fatura) => (
           <View key={fatura.id} style={styles.section}>
-            <Text>Fatura Nº: {fatura.id}</Text>
-            <Text>Ano/Mês: {fatura.ano}/{fatura.mes}</Text>
-            <Text>Valor: €{fatura.valor.toFixed(2)}</Text>
+            <Text>Numero de Fatura: {fatura.id}</Text>
+            <Text>Valor: €{fatura.valor}</Text>
             <Text>Situação: {fatura.pago ? 'Paga' : 'Pendente'}</Text>
           </View>
         ))}
@@ -61,36 +49,25 @@ export default function FaturasPage() {
   useEffect(() => {
     async function loadFaturas() {
       setLoading(true);
-      // Se o perfil for admin, passa { admin: true }, senão { admin: false }
-      const isAdmin = perfil?.role === 'admin';
-      const data = await fetchFaturas({ admin: isAdmin });
+      const isAdmin = perfil.role === 'admin';
+      const isSenhorio = perfil.role === 'senhorio';
+      const data = await fetchFaturas({ admin: isAdmin, isSenhorio });
       setFaturas(data);
       setLoading(false);
     }
-
     if (perfil) {
       loadFaturas();
     }
   }, [perfil]);
 
   const handlePagar = async (id) => {
-    await pagarFatura(id);
-    // Atualiza só a fatura que foi paga no state
+    await updateFatura(id, { pago: true });
     setFaturas((prev) =>
-      prev.map((f) =>
-        f.id === id
-          ? {
-              ...f,
-              pago: true,
-            }
-          : f
-      )
+      prev.map((f) => (f.id === id ? { ...f, pago: true } : f))
     );
   };
 
-  if (loading) {
-    return <div className="text-center my-5">Carregando...</div>;
-  }
+  if (loading) return <div className="text-center my-5">Carregando…</div>;
 
   return (
     <div className="container my-5">
@@ -98,12 +75,10 @@ export default function FaturasPage() {
         <h1 className="fw-bold mb-0">Faturas</h1>
         <PDFDownloadLink
           document={<FaturasPDF faturas={faturas} />}
-          fileName="Extrato_Faturas.pdf"
+          fileName="Extrato.pdf"
           className="btn btn-outline-primary"
         >
-          {({ loading: gerando }) =>
-            gerando ? 'Gerando PDF...' : 'Extrato Completo'
-          }
+          {({ loading }) => (loading ? 'Gerando PDF…' : 'Extrato Completo')}
         </PDFDownloadLink>
       </div>
       <div className="row">

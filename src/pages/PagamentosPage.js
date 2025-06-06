@@ -1,122 +1,84 @@
+// src/pages/PagamentosPage.js
+
 import { useEffect, useState } from 'react';
-import { useAuth } from '../auth/AuthContext';
 import {
   fetchPagamentos,
-  criarPagamento,
-  eliminarPagamento,
-} from '../api/pagamentos';
-import { fetchTodosPerfis } from '../api/perfis';
+  createPagamento,
+  updatePagamento,
+  deletePagamento,
+} from '../api/pagamentos'; // trocar criarPagamento → createPagamento e eliminarPagamento → deletePagamento
 import PagamentoCard from '../components/PagamentoCard';
+import PagamentoForm from '../components/PagamentoForm';
+import { useAuth } from '../auth/AuthContext';
 
 export default function PagamentosPage() {
-  const { user, perfil } = useAuth();
-  const isAdmin = perfil?.role === 'admin';
+  const [pagamentos, setPagamentos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { perfil } = useAuth();
 
-  const [lista, setLista] = useState([]);
-  const [descricao, setDescricao] = useState('');
-  const [valor, setValor] = useState('');
-  const [utilizadores, setUtilizadores] = useState([]);
-  const [uidAlvo, setUidAlvo] = useState('');
-
-  /* pagamentos */
   useEffect(() => {
-    if (!user) return;
-    const carregar = async () => {
-      const data = await fetchPagamentos(isAdmin, user.id);
-      setLista(data);
-    };
-    carregar();
-  }, [user, isAdmin]);
-
-  /* dropdown perfis */
-  useEffect(() => {
-    if (isAdmin) fetchTodosPerfis().then(setUtilizadores);
-  }, [isAdmin]);
-
-  const adicionar = async (e) => {
-    e.preventDefault();
-    if (isAdmin && !uidAlvo) {
-      alert('Escolhe o utilizador a quem pertence este pagamento.');
-      return;
+    async function loadPagamentos() {
+      setLoading(true);
+      const isAdmin = perfil.role === 'admin';
+      const isSenhorio = perfil.role === 'senhorio';
+      const data = await fetchPagamentos({ admin: isAdmin, isSenhorio });
+      setPagamentos(data);
+      setLoading(false);
     }
-    await criarPagamento({
-      user_id: isAdmin ? uidAlvo : user.id,
-      descricao,
-      valor: Number(valor),
-      estado: 'pendente',
-    });
-    setDescricao('');
-    setValor('');
-    setUidAlvo('');
-    const data = await fetchPagamentos(isAdmin, user.id);
-    setLista(data);
+    if (perfil) loadPagamentos();
+  }, [perfil]);
+
+  const handleCriar = async (data) => {
+    try {
+      await createPagamento(data);
+      const isAdmin = perfil.role === 'admin';
+      const isSenhorio = perfil.role === 'senhorio';
+      const updated = await fetchPagamentos({ admin: isAdmin, isSenhorio });
+      setPagamentos(updated);
+    } catch (err) {
+      console.error('Erro ao criar pagamento:', err.message);
+      alert('Falha ao criar pagamento. Veja o console.');
+    }
   };
 
-  const remover = async (id) => {
-    if (!window.confirm('Eliminar pagamento?')) return;
-    await eliminarPagamento(id);
-    const data = await fetchPagamentos(isAdmin, user.id);
-    setLista(data);
+  const handleUpdate = async (id, updates) => {
+    try {
+      await updatePagamento(id, updates);
+      setPagamentos((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      );
+    } catch (err) {
+      console.error('Erro ao atualizar pagamento:', err.message);
+      alert('Falha ao atualizar pagamento. Veja o console.');
+    }
   };
 
-  const pagar = () => alert('A abrir métodos de pagamento… Pago!');
+  const handleDelete = async (id) => {
+    if (!window.confirm('Deseja mesmo excluir este pagamento?')) return;
+    try {
+      await deletePagamento(id);
+      setPagamentos((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error('Erro ao excluir pagamento:', err.message);
+      alert('Falha ao excluir pagamento. Veja o console.');
+    }
+  };
+
+  if (loading) return <div className="text-center my-5">Carregando…</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold mb-4">Pagamentos de Renda</h1>
+    <div className="max-w-2xl mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-4">Pagamentos</h2>
+      {/* Form para criar pagamento */}
+      <PagamentoForm onSubmit={handleCriar} />
 
-      {isAdmin && (
-        <form
-          onSubmit={adicionar}
-          className="flex flex-wrap gap-2 items-end bg-white p-4 rounded shadow"
-        >
-          <select
-            className="border p-2 rounded"
-            value={uidAlvo}
-            onChange={(e) => setUidAlvo(e.target.value)}
-            required
-          >
-            <option value="" disabled>
-              -- utilizador --
-            </option>
-            {utilizadores.map((u) => (
-              <option key={u.user_id} value={u.user_id}>
-                {u.nome || u.email}
-              </option>
-            ))}
-          </select>
-
-          <input
-            className="border p-2 rounded flex-1"
-            placeholder="Descrição"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            required
-          />
-
-          <input
-            type="number"
-            step="0.01"
-            className="border p-2 rounded w-32"
-            placeholder="Valor €"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            required
-          />
-
-          <button className="bg-blue-600 text-white px-4 rounded">
-            Adicionar
-          </button>
-        </form>
-      )}
-
-      {lista.map((p) => (
+      {pagamentos.map((pag) => (
         <PagamentoCard
-          key={p.id}
-          pg={p}
-          isAdmin={isAdmin}
-          onDelete={remover}
-          onPay={pagar}
+          key={pag.id}
+          pagamento={pag}
+          onEdit={(updates) => handleUpdate(pag.id, updates)}
+          onDelete={() => handleDelete(pag.id)}
+          perfil={perfil}
         />
       ))}
     </div>

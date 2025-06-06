@@ -1,8 +1,11 @@
+// src/components/PedidoCard.js
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import OrcamentoForm from './OrcamentoForm';
 import OrcamentoCard from './OrcamentoCard';
 import { fetchOrcamentos } from '../api/orcamentos';
+import { Link } from 'react-router-dom';
 
 const PedidoCard = ({ pedido, onEdit, onDelete }) => {
   const { perfil } = useAuth();
@@ -12,8 +15,16 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
   const [orcs, setOrcs] = useState([]);
 
   useEffect(() => {
-    if (expand) fetchOrcamentos(pedido.id).then(setOrcs);
-  }, [expand, pedido.id]);
+    if (expand) {
+      const isAdmin = perfil.role === 'admin';
+      const isSenhorio = perfil.role === 'senhorio';
+      fetchOrcamentos({ pedidoId: pedido.id, admin: isAdmin, isSenhorio })
+        .then(setOrcs)
+        .catch((err) => {
+          console.error('Erro ao buscar orçamentos:', err.message);
+        });
+    }
+  }, [expand, pedido.id, perfil.role]);
 
   return (
     <div className="card mb-3 shadow-sm border">
@@ -22,23 +33,32 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
           <div>
             <h5 className="card-title mb-1">{pedido.titulo}</h5>
             <p className="card-text text-muted small mb-0">{pedido.descricao}</p>
+            <p className="text-sm text-gray-600">Estado: {pedido.estado}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setExpand(!expand)}
-            className="btn btn-link text-primary text-decoration-none ps-2"
-            tabIndex={0}
-          >
-            {expand ? (
-              <>
-                Fechar <i className="bi bi-chevron-up"></i>
-              </>
-            ) : (
-              <>
-                Detalhes <i className="bi bi-chevron-down"></i>
-              </>
-            )}
-          </button>
+
+          <div className="d-flex flex-column align-items-end">
+            <button
+              type="button"
+              onClick={() => setExpand(!expand)}
+              className="btn btn-link text-primary text-decoration-none ps-2"
+            >
+              {expand ? (
+                <>
+                  Fechar <i className="bi bi-chevron-up"></i>
+                </>
+              ) : (
+                <>
+                  Orçamentos <i className="bi bi-chevron-down"></i>
+                </>
+              )}
+            </button>
+            <Link
+              to={`/pedidos/${pedido.id}`}
+              className="mt-1 text-blue-600 hover:underline small"
+            >
+              Ver Detalhes
+            </Link>
+          </div>
         </div>
 
         {expand && (
@@ -53,19 +73,24 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
                 <span className="text-muted small">Nenhum orçamento ainda.</span>
               )}
               {orcs.map((o) => (
-                <OrcamentoCard key={o.id} orc={o} />
+                <OrcamentoCard key={o.id} orc={o} perfil={perfil} />
               ))}
             </div>
 
-            {isInquilino &&
-              new Date() < new Date(pedido.validade_orcamentos) && (
-                <div className="mt-3">
-                  <OrcamentoForm
-                    pedidoId={pedido.id}
-                    onFinish={() => fetchOrcamentos(pedido.id).then(setOrcs)}
-                  />
-                </div>
-              )}
+            {isInquilino && new Date() < new Date(pedido.validade_orcamentos) && (
+              <div className="mt-3">
+                <OrcamentoForm
+                  pedidoId={pedido.id}
+                  onFinish={() =>
+                    fetchOrcamentos({
+                      pedidoId: pedido.id,
+                      admin: perfil.role === 'admin',
+                      isSenhorio: perfil.role === 'senhorio',
+                    }).then(setOrcs)
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -93,4 +118,3 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
 };
 
 export default PedidoCard;
-
