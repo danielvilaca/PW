@@ -1,96 +1,113 @@
-// src/pages/PedidosPage.js
-
-import { useEffect, useState } from 'react';
-import { fetchPedidos, criarPedido, updatePedido, deletePedido } from '../api/pedidos';
-import PedidoCard from '../components/PedidoCard';
-import PedidoForm from '../components/PedidoForm'; // Se for necessário um formulário separado
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import {
+  fetchPedidos,
+  criarPedido,
+  updatePedido,
+  deletePedido,
+} from '../api/pedidos';
+import PedidoCard from '../components/PedidoCard';
+import PedidoFormModal from '../components/PedidoFormModal';
 
 export default function PedidosPage() {
   const { perfil } = useAuth();
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
-  const carregarPedidos = async () => {
+  // 1. Carrega TODOS os pedidos e, se for inquilino,
+  //    filtra apenas os não-vencidos; se for admin/senhorio,
+  //    mostra tudo (inclusive vencidos).
+  const loadPedidos = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await fetchPedidos();
-      setPedidos(data);
+      const data = await fetchPedidos(); // já traz todos ou apenas do próprio, conforme a role
+      if (perfil.role === 'admin' || perfil.role === 'senhorio') {
+        // Admin e Senhorio veem todos, sem filtro de validade
+        setPedidos(data);
+      } else {
+        // Inquilino vê apenas os não-vencidos
+        const hoje = new Date();
+        const validos = data.filter(
+          (p) => new Date(p.validade_orcamentos) >= hoje
+        );
+        setPedidos(validos);
+      }
     } catch (err) {
       console.error('Erro ao carregar pedidos:', err);
+      setPedidos([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const adicionarPedido = async (novoPedido) => {
+  useEffect(() => {
+    // sempre que a página montar (ou perfil mudar), recarrega
+    if (perfil) {
+      loadPedidos();
+    }
+  }, [perfil]);
+
+  // 2. Callback para criar um novo pedido (vindo do Modal)
+  const handleCreate = async (novoPedido) => {
     try {
-      // novoPedido = { titulo, descricao, validade_orcamentos, condominio_id }
-      await criarPedido(novoPedido);
-      await carregarPedidos();
-    } catch (error) {
-      console.error('Erro ao adicionar pedido:', error);
-      alert('Erro ao criar pedido. Veja o console.');
+      await criarPedido({ ...novoPedido, estado: 'Aberto' });
+      await loadPedidos();
+      setShowModal(false);
+    } catch (err) {
+      console.error('Erro ao criar pedido:', err);
+      alert('Falha ao criar pedido. Veja o console.');
     }
   };
 
+  // 3. Callback para editar (usa prompt por enquanto)
   const handleEdit = async (pedido) => {
-    // pedido: objeto completo. Abre modal ou formulário para editar campos.
-    // Exemplo simples:
-    const titulo = window.prompt('Novo título', pedido.titulo);
-    if (titulo == null) return;
+    const novoTitulo = prompt('Título do pedido', pedido.titulo);
+    if (!novoTitulo) return;
     try {
-      await updatePedido(pedido.id, { titulo });
-      await carregarPedidos();
+      await updatePedido(pedido.id, { titulo: novoTitulo });
+      await loadPedidos();
     } catch (err) {
       console.error('Erro ao editar pedido:', err);
-      alert('Falha ao editar. Veja console.');
+      alert('Falha ao editar. Veja o console.');
     }
   };
 
+  // 4. Callback para deletar
   const handleDelete = async (id) => {
-    if (!window.confirm('Tem a certeza que quer eliminar este pedido?')) return;
+    if (!window.confirm('Deseja realmente excluir este pedido?')) return;
     try {
       await deletePedido(id);
-      setPedidos((prev) => prev.filter((p) => p.id !== id));
+      await loadPedidos();
     } catch (err) {
-      console.error('Erro ao apagar pedido:', err);
-      alert('Falha ao excluir pedido. Veja console.');
+      console.error('Erro ao eliminar pedido:', err);
+      alert('Falha ao eliminar. Veja o console.');
     }
   };
-
-  useEffect(() => {
-    carregarPedidos();
-  }, []);
-
-  if (loading) return <div className="text-center my-5">Carregando pedidos…</div>;
 
   return (
     <div className="container my-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Pedidos de Reparação</h2>
-        {/* Se quiser um formulário embutido */}
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            // Exemplo simplificado de prompt para criar
-            const titulo = window.prompt('Título do pedido');
-            if (!titulo) return;
-            const descricao = window.prompt('Descrição');
-            if (descricao == null) return;
-            const validade = window.prompt('Validade (YYYY-MM-DD)');
-            if (!validade) return;
-            const condId = window.prompt('Condomínio ID');
-            if (!condId) return;
-            adicionarPedido({ titulo, descricao, validade_orcamentos: validade, condominio_id: condId });
-          }}
-        >
-          Novo Pedido
-        </button>
+
+        {/* Botão “Novo Pedido” só para admin e senhorio */}
+        {(perfil.role === 'admin' || perfil.role === 'senhorio') && (
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowModal(true)}
+          >
+            Novo Pedido
+          </button>
+        )}
       </div>
 
-      {pedidos.length === 0 ? (
-        <p className="text-muted">Nenhum pedido encontrado.</p>
+      {loading ? (
+        <p>Carregando pedidos…</p>
+      ) : pedidos.length === 0 ? (
+        <p className="text-muted">
+          {/* Mensagem genérica mesmo que tenha algum vencido (se for inquilino) */}
+          Nenhum pedido válido encontrado.
+        </p>
       ) : (
         pedidos.map((pedido) => (
           <PedidoCard
@@ -101,6 +118,13 @@ export default function PedidosPage() {
           />
         ))
       )}
+
+      {/* Modal de criação de novo pedido */}
+      <PedidoFormModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        onCreate={handleCreate}
+      />
     </div>
   );
 }

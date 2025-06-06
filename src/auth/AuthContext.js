@@ -1,3 +1,5 @@
+// src/auth/AuthContext.js
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
@@ -6,12 +8,13 @@ import { fetchPerfil, createPerfil } from '../api/perfis';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-
-  const [user,   setUser]   = useState(undefined); // undefined = ainda a carregar
+  // user: supabase Auth user object, or null if not logged in, or undefined while loading
+  const [user, setUser] = useState(undefined);
+  // perfil: row from "perfis" table corresponding to the logged‐in user (or null if none)
   const [perfil, setPerfil] = useState(null);
   const navigate = useNavigate();
 
-
+  // 1. On mount, fetch current session and set up listener for auth state changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -21,38 +24,49 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-
+  // 2. Whenever "user" changes, load (or create) their perfil record
   useEffect(() => {
-    if (user === undefined) return;
-    if (user === null)      return setPerfil(null); // logged out
+    if (user === undefined) {
+      // still loading initial session
+      return;
+    }
 
+    if (user === null) {
+      // logged out → clear perfil
+      setPerfil(null);
+      return;
+    }
+
+    // If we have a real user, attempt to fetch their perfil
     (async () => {
       try {
-        const existente = await fetchPerfil(user.id);
-        if (existente) {
-          setPerfil(existente);
-          return;
+        const existing = await fetchPerfil(user.id);
+        if (existing) {
+          setPerfil(existing);
+        } else {
+          // If no perfil exists, create a default one as "inquilino"
+          const newProfile = await createPerfil({
+            user_id: user.id,
+            role: 'inquilino',
+            nome: '',
+            foto_url: null,
+            validated: true, // newly created inquilino is validated by default
+          });
+          setPerfil(newProfile);
         }
-
-        await createPerfil({
-          user_id : user.id,
-          role    : 'inquilino', // default
-          nome    : '',
-          foto_url: null,
-        });
-
-        const novo = await fetchPerfil(user.id);
-        setPerfil(novo);
       } catch (err) {
-        console.error('PERFIL-ERROR →', JSON.stringify(err, null, 2));
+        console.error('AUTH-PERFIL-ERROR →', err);
+        setPerfil(null);
       }
     })();
   }, [user]);
 
-
+  // 3. Login method
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
@@ -64,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
+  // 4. Logout method
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -71,14 +86,13 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
-
   return (
     <AuthContext.Provider
       value={{
         user,
         perfil,
-        isLoading: user === undefined,
-        isAuthenticated: !!user,
+        isLoading: user === undefined,      // true while initial session is being loaded
+        isAuthenticated: !!user,             // boolean
         login,
         logout,
       }}
