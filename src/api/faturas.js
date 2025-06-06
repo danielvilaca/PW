@@ -1,44 +1,55 @@
+// src/api/faturas.js
 import { supabase } from '../services/supabaseClient';
-  import { Page, Text, View, Document, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
-// import jsPDF from 'jspdf';
 
-
-// const bucket = 'faturas-pdf';
-
+/**
+ * Busca todas as faturas, ordenadas por ano e mês descendente.
+ * Se 'admin' for false (ou omitido), filtra só as faturas do usuário logado.
+ *
+ * @param {Object} options
+ * @param {boolean} [options.admin=false] — true para buscar todas as faturas; false para buscar só as próprias.
+ * @returns {Promise<Array>} Lista de faturas.
+ */
 export const fetchFaturas = async ({ admin = false } = {}) => {
-  const uid = (await supabase.auth.getUser()).data.user.id;
-  let query = supabase.from('faturas').select('*').order('ano', { ascending: false }).order('mes', { ascending: false });
-  if (!admin) query = query.eq('user_id', uid);
+  // Obter ID do usuário logado
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+
+  if (userErr) throw userErr;
+  const uid = user.id;
+
+  // Construir query básica
+  let query = supabase
+    .from('faturas')
+    .select('*')
+    .order('ano', { ascending: false })
+    .order('mes', { ascending: false });
+
+  // Se não for admin, filtrar só as próprias faturas
+  if (!admin) {
+    query = query.eq('user_id', uid);
+  }
+
   const { data, error } = await query;
   if (error) throw error;
   return data;
 };
 
+/**
+ * Marca a fatura como paga (campo 'pago' = true) e retorna o registo atualizado.
+ *
+ * @param {string} id — ID da fatura.
+ * @returns {Promise<Object>} A fatura atualizada.
+ */
 export const pagarFatura = async (id) => {
-
   const { data: fatura, error: upErr } = await supabase
     .from('faturas')
     .update({ pago: true })
     .eq('id', id)
     .select('*')
     .single();
+
   if (upErr) throw upErr;
-
-
-  // const doc = new jsPDF();
-  // doc.text(`Recibo de Pagamento`, 20, 20);
-  // doc.text(`Fatura #${fatura.id}`, 20, 30);
-  // doc.text(`Valor: €${fatura.valor}`, 20, 40);
-  // doc.text(`Data: ${new Date().toLocaleDateString()}`, 20, 50);
-  // const pdfBlob = doc.output('blob');
-
-
-  // const { error: storeErr } = await supabase
-  //   .storage.from(bucket)
-  //   .upload(`${id}.pdf`, pdfBlob, { upsert: true, contentType: 'application/pdf' });
-  // if (storeErr) throw storeErr;
-
-
-  // const publicURL = supabase.storage.from(bucket).getPublicUrl(`${id}.pdf`).data.publicUrl;
-  // await supabase.from('faturas').update({ pdf_url: publicURL }).eq('id', id);
+  return fatura;
 };
