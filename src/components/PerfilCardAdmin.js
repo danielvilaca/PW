@@ -1,4 +1,4 @@
-const PerfilCardAdmin = ({ perfil, onEdit, onDelete, onToggleValidar }) => {
+const PerfilCardAdmin = ({ perfil, onEdit, onEditInfo, onDelete, onToggleValidar }) => {
   const { nome, email, role, validated } = perfil;
 
   const badgeColor = validated ? 'bg-success' : 'bg-warning text-dark';
@@ -40,10 +40,11 @@ const PerfilCardAdmin = ({ perfil, onEdit, onDelete, onToggleValidar }) => {
           <button
             type="button"
             className="btn btn-outline-secondary btn-sm"
-            onClick={() => onEditInfo(perfil)}
+            onClick={() => onEditInfo && onEditInfo(perfil)}
           >
             Dados
           </button>
+
 
           <button
             type="button"

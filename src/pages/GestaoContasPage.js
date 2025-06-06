@@ -89,6 +89,7 @@ export default function GestaoContasPage() {
             key={c.id}
             perfil={c}
             onEdit={editarRole}
+            onEditInfo={() => alert('Editar informações não implementado')}
             onDelete={remover}
           />
         ))}
