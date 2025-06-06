@@ -3,18 +3,17 @@ import { supabase } from '../services/supabaseClient';
 
 /**
  * Recupera todos os pedidos visíveis para o utilizador atual,
- * filtrando automaticamente pelo perfil (user_id ou condições de senhorio).
+ * filtrando automaticamente pelo perfil (perfil.id e perfil.role).
  * Se for admin (role='admin'), recupera todos.
  *
  * @returns {Promise<Array>} lista de pedidos
  */
 export async function fetchPedidos() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 1) Obter sessão e user
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  // Busca o perfil para saber role
+  // 2) Buscar o perfil (para sabermos perfil.id e perfil.role)
   const { data: perfilData, error: perfilErr } = await supabase
     .from('perfis')
     .select('*')
@@ -23,71 +22,62 @@ export async function fetchPedidos() {
   if (perfilErr) throw perfilErr;
   const perfil = perfilData;
 
-  // Começamos por obter todos, ordenados por created_at
+  // 3) Montar query base (seleciona todos os campos de “pedidos”)
   let query = supabase
     .from('pedidos')
     .select('*')
     .order('created_at', { ascending: false });
 
+  // 4) Se não for admin, aplicar filtro
   if (perfil.role === 'admin') {
-    // Sem filtro
+    // Admin: sem filtro, vê todos
   } else if (perfil.role === 'senhorio') {
-    // Se daqui para a frente precisar de “filtrar por condomínio_id”,
-    // descomente e ajuste a subquery abaixo. No momento,
-    // para simplificar, assume-se que tudo faz parte de um único condomínio:
-    //
-    // query = query.in(
-    //   'condominio_id',
-    //   supabase
-    //     .from('senhorio_condominio')
-    //     .select('condominio_id')
-    //     .eq('senhorio_id', perfil.user_id)
-    // );
-
+    // Senhorio: neste exemplo, não existe condominio_id relacionamento,
+    // então considerar que o senhorio vê todos também.
+    // Caso queira filtrar por condomínio, teria de existir uma tabela “senhorio_condominio”.
+    // Por enquanto, deixa sem filtro também.
   } else {
-    // inquilino: apenas os próprios
-    query = query.eq('user_id', user.id);
+    // Inquilino: só vê *seus* próprios pedidos
+    // OBS.: note que em “pedidos.user_id” agora guardamos PERFIL.ID (e não user.id).
+    query = query.eq('user_id', perfil.id);
   }
 
+  // 5) Executar
   const { data, error } = await query;
   if (error) throw error;
   return data;
 }
 
 /**
- * Cria um novo pedido, associando automaticamente o user_id do utilizador logado.
+ * Cria um novo pedido, associando automaticamente o user_id = perfil.id
+ * (chave primária de “perfis”).
  *
- * @param {{
- *   titulo: string,
- *   descricao: string,
- *   validade_orcamentos: string (YYYY-MM-DD),
- *   condominio_id: uuid (pode ficar nulo ou valor fixo)
- * }} pedidoData
+ * @param {{ titulo: string, descricao: string, validade_orcamentos: string (YYYY-MM-DD) }} pedidoData
  */
-export async function criarPedido({
-  titulo,
-  descricao,
-  validade_orcamentos,
-  condominio_id = null, // se vai ser um único condomínio, podemos usar null ou um valor fixo
-}) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function criarPedido({ titulo, descricao, validade_orcamentos }) {
+  // 1) Obter user atual
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  // Tentar inserir user_id. Se ainda não existir perfil para este user,
-  // vai dar “violates foreign key” (porque user_id não está em perfis).
-  // Por isso, certifique-se de que todo utilizador tenha perfil criado primeiro.
+  // 2) Obter o perfil deste user (para sabermos perfil.id)
+  const { data: perfilData, error: perfilErr } = await supabase
+    .from('perfis')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+  if (perfilErr) throw perfilErr;
+  const perfil = perfilData;
+
+  // 3) Inserir no “pedidos” usando perfil.id como FK
   const { data, error } = await supabase
     .from('pedidos')
     .insert([
       {
-        user_id: user.id,
+        user_id: perfil.id,
         titulo,
         descricao,
         validade_orcamentos,
-        condominio_id,
-        estado: 'Aberto', // valor padrão
+        estado: 'Aberto', // estado padrão
       },
     ])
     .select()
@@ -98,9 +88,11 @@ export async function criarPedido({
 }
 
 /**
- * Atualiza um pedido existente (por id), retornando o registo atualizado.
- * O RLS no Supabase só permite que quem tiver permissão (admin, senhorio do condomínio ou próprio inquilino em 'Aberto')
- * faça o update.
+ * Atualiza um pedido existente (por pedido.id), retornando o registro atualizado.
+ * O backend (RLS) validará se este perfil tem permissão.
+ *
+ * @param {string} id  → este “id” refere-se ao PK de “pedidos.id”
+ * @param {{ titulo?: string, descricao?: string, estado?: string, validade_orcamentos?: string }} updates
  */
 export async function updatePedido(id, updates) {
   const { data, error } = await supabase
@@ -114,7 +106,10 @@ export async function updatePedido(id, updates) {
 }
 
 /**
- * Elimina um pedido (apenas admin ou proprietário ou senhorio do condomínio pode).
+ * Elimina um pedido pelo seu “id” (PK). Só admin ou próprio perfil ou senhorio do
+ * condomínio (se aplicável) poderão eliminar, via RLS.
+ *
+ * @param {string} id → PK de “pedidos.id”
  */
 export async function deletePedido(id) {
   const { data, error } = await supabase
@@ -126,7 +121,9 @@ export async function deletePedido(id) {
 }
 
 /**
- * Obtém um pedido pelo seu ID.
+ * Busca e devolve um único pedido pelo seu “id” (PK)
+ *
+ * @param {string} id → PK de “pedidos.id”
  */
 export async function getPedidoById(id) {
   const { data, error } = await supabase

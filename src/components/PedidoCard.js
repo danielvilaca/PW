@@ -79,8 +79,6 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
               )}
           </div>
         )}
-
-        {(perfil?.role === 'admin' || perfil?.role === 'senhorio') && (
           <div className="d-flex gap-2 mt-3">
             <button
               type="button"
@@ -96,8 +94,14 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
             >
               Eliminar
             </button>
+
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => {/* abre modal de OrcamentoForm */}}
+            >
+              Adicionar Orçamento
+            </button>
           </div>
-        )}
       </div>
     </div>
   );
