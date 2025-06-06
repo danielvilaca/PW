@@ -42,7 +42,7 @@ const PerfilCardAdmin = ({ perfil, onEdit, onEditInfo, onDelete, onToggleValidar
           <button
             type="button"
             className="btn btn-outline-secondary btn-sm"
-            //onClick={() => onEditInfo(perfil)}
+            onClick={() => onEditInfo(perfil)}
           >
             Dados
           </button>

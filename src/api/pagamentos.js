@@ -25,15 +25,6 @@ export async function fetchPagamentos() {
 
   if (perfil.role === 'admin') {
     // sem filtro extra
-  } else if (perfil.role === 'senhorio') {
-    // exemplo: selecionar só pagamentos do(s) condominio(s) que o senhorio administra
-    query = query.in(
-      'condominio_id',
-      supabase
-        .from('senhorio_condominio')
-        .select('condominio_id')
-        .eq('senhorio_id', perfil.user_id)
-    );
   } else {
     // inquilino: só pagamentos que ele próprio criou
     query = query.eq('user_id', user.id);
