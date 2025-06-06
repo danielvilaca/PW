@@ -1,129 +1,102 @@
 // src/components/OrcamentoForm.js
 
 import { useState } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { createOrcamento } from '../api/orcamentos';
 
 /**
- * Formulário para submeter um orçamento.
- * Chama onSubmit({ fornecedor, contacto, valor, anexo_url }) ao enviar.
+ * Formulário para enviar um novo orçamento a um pedido.
+ *
+ * Props:
+ *  - pedidoId: string       // ID do pedido ao qual vamos associar
+ *  - onFinish(): Promise    // callback após envio bem-sucedido (para recarregar lista)
  */
-export default function OrcamentoForm({ onSubmit }) {
+export default function OrcamentoForm({ pedidoId, onFinish }) {
   const [fornecedor, setFornecedor] = useState('');
   const [contacto, setContacto]     = useState('');
   const [valor, setValor]           = useState('');
-  const [anexoUrl, setAnexoUrl]     = useState(null);
-  const [uploading, setUploading]   = useState(false);
+  const [anexoUrl, setAnexoUrl]     = useState('');
+  const [saving, setSaving]         = useState(false);
 
-  // Faz upload direto no Supabase Storage no bucket "orcamentos"
-  const handleUploadAnexo = async (file) => {
-    if (!file) return null;
-    setUploading(true);
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { data, error: uploadError } = await supabase.storage
-      .from('orcamentos')
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) {
-      console.error('Erro no upload do anexo:', uploadError.message);
-      alert('Falha ao enviar anexo.');
-      setUploading(false);
-      return null;
-    }
-
-    const { data: publicData } = supabase.storage
-      .from('orcamentos')
-      .getPublicUrl(filePath);
-
-    setUploading(false);
-    return publicData.publicUrl;
-  };
-
-  const handleChangeFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const url = await handleUploadAnexo(file);
-    if (url) {
-      setAnexoUrl(url);
-    }
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!fornecedor || !contacto || !valor) {
-      alert('Por favor preencha todos os campos obrigatórios.');
+      alert('Preencha todos os campos obrigatórios.');
       return;
     }
-    onSubmit({
-      fornecedor,
-      contacto,
-      valor: Number(valor),
-      anexo_url: anexoUrl,
-    });
-    setFornecedor('');
-    setContacto('');
-    setValor('');
-    setAnexoUrl(null);
+    setSaving(true);
+    try {
+      await createOrcamento({
+        pedido_id: pedidoId,
+        fornecedor,
+        contacto,
+        valor: Number(valor),
+        anexo_url: anexoUrl,
+      });
+      setFornecedor('');
+      setContacto('');
+      setValor('');
+      setAnexoUrl('');
+      if (onFinish) await onFinish();
+    } catch (err) {
+      console.error('Erro ao criar orçamento:', err);
+      alert('Falha ao enviar orçamento. Veja console.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mb-4 space-y-4">
-      <div>
-        <label className="form-label">Fornecedor / Empresa</label>
-        <input
-          type="text"
-          value={fornecedor}
-          onChange={(e) => setFornecedor(e.target.value)}
-          className="form-control"
-          required
-        />
+    <form onSubmit={handleSubmit} className="mb-3">
+      <div className="row g-2">
+        <div className="col-md-6">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Fornecedor*"
+            value={fornecedor}
+            onChange={(e) => setFornecedor(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-md-6">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Contacto*"
+            value={contacto}
+            onChange={(e) => setContacto(e.target.value)}
+            required
+          />
+        </div>
       </div>
-      <div>
-        <label className="form-label">Contacto (telefone ou e-mail)</label>
-        <input
-          type="text"
-          value={contacto}
-          onChange={(e) => setContacto(e.target.value)}
-          className="form-control"
-          required
-        />
-      </div>
-      <div>
-        <label className="form-label">Valor (€)</label>
-        <input
-          type="number"
-          step="0.01"
-          value={valor}
-          onChange={(e) => setValor(e.target.value)}
-          className="form-control"
-          required
-        />
-      </div>
-      <div>
-        <label className="form-label">Anexo (foto do orçamento)</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleChangeFile}
-          disabled={uploading}
-          className="form-control"
-        />
-        {uploading && <p className="form-text text-muted">Fazendo upload…</p>}
-        {anexoUrl && (
-          <p className="form-text">
-            Anexo carregado: <a href={anexoUrl} target="_blank" rel="noreferrer">Visualizar</a>
-          </p>
-        )}
+      <div className="row g-2 mt-2">
+        <div className="col-md-6">
+          <input
+            type="number"
+            step="0.01"
+            className="form-control"
+            placeholder="Valor (€)*"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-md-6">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="URL do anexo (opcional)"
+            value={anexoUrl}
+            onChange={(e) => setAnexoUrl(e.target.value)}
+          />
+        </div>
       </div>
       <button
         type="submit"
-        className="btn btn-success"
-        disabled={uploading}
+        className="btn btn-secondary btn-sm mt-2"
+        disabled={saving}
       >
-        {uploading ? 'Enviando…' : 'Submeter Orçamento'}
+        {saving ? 'Enviando…' : 'Enviar Orçamento'}
       </button>
     </form>
   );

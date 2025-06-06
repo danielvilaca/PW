@@ -5,108 +5,96 @@ import { useAuth } from '../auth/AuthContext';
 import OrcamentoForm from './OrcamentoForm';
 import OrcamentoCard from './OrcamentoCard';
 import { fetchOrcamentos } from '../api/orcamentos';
-import { Link } from 'react-router-dom';
 
-const PedidoCard = ({ pedido, onEdit, onDelete }) => {
+export default function PedidoCard({ pedido, onEdit, onDelete }) {
   const { perfil } = useAuth();
   const isInquilino = perfil?.role === 'inquilino';
 
   const [expand, setExpand] = useState(false);
-  const [orcs, setOrcs] = useState([]);
+  const [orcs, setOrcs]     = useState([]);
+  const [loadingOrcs, setLoadingOrcs] = useState(false);
 
   useEffect(() => {
     if (expand) {
-      const isAdmin = perfil.role === 'admin';
-      const isSenhorio = perfil.role === 'senhorio';
-      fetchOrcamentos({ pedidoId: pedido.id, admin: isAdmin, isSenhorio })
-        .then(setOrcs)
-        .catch((err) => {
-          console.error('Erro ao buscar orçamentos:', err.message);
-        });
+      (async () => {
+        setLoadingOrcs(true);
+        try {
+          const lista = await fetchOrcamentos(pedido.id);
+          setOrcs(lista);
+        } catch (err) {
+          console.error('Erro ao carregar orçamentos:', err);
+        } finally {
+          setLoadingOrcs(false);
+        }
+      })();
     }
-  }, [expand, pedido.id, perfil.role]);
+  }, [expand, pedido.id]);
 
   return (
-    <div className="card mb-3 shadow-sm border">
-      <div className="card-body pb-2">
-        <div className="d-flex justify-content-between align-items-start">
+    <div className="card mb-3 shadow-sm">
+      <div className="card-body">
+        <div className="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <h5 className="card-title mb-1">{pedido.titulo}</h5>
-            <p className="card-text text-muted small mb-0">{pedido.descricao}</p>
-            <p className="text-sm text-gray-600">Estado: {pedido.estado}</p>
+            <h5 className="card-title">{pedido.titulo}</h5>
+            <p className="text-muted">{pedido.descricao}</p>
+            <p className="small text-secondary">Estado: {pedido.estado}</p>
+            <p className="small text-secondary">Validade até: {pedido.validade_orcamentos}</p>
           </div>
-
-          <div className="d-flex flex-column align-items-end">
-            <button
-              type="button"
-              onClick={() => setExpand(!expand)}
-              className="btn btn-link text-primary text-decoration-none ps-2"
-            >
-              {expand ? (
-                <>
-                  Fechar <i className="bi bi-chevron-up"></i>
-                </>
-              ) : (
-                <>
-                  Orçamentos <i className="bi bi-chevron-down"></i>
-                </>
-              )}
-            </button>
-            <Link
-              to={`/pedidos/${pedido.id}`}
-              className="mt-1 text-blue-600 hover:underline small"
-            >
-              Ver Detalhes
-            </Link>
-          </div>
+          <button
+            type="button"
+            className="btn btn-link text-primary"
+            onClick={() => setExpand(!expand)}
+          >
+            {expand ? 'Fechar Orçamentos' : 'Ver Orçamentos'}
+          </button>
         </div>
 
         {expand && (
           <div className="mt-3">
-            <p className="text-muted small mb-2">
-              <strong>Validade:</strong> {pedido.validade_orcamentos}
-            </p>
-
-            <h6 className="fw-semibold mb-2">Orçamentos</h6>
-            <div className="mb-2">
-              {orcs.length === 0 && (
-                <span className="text-muted small">Nenhum orçamento ainda.</span>
-              )}
-              {orcs.map((o) => (
-                <OrcamentoCard key={o.id} orc={o} perfil={perfil} />
-              ))}
-            </div>
-
-            {isInquilino && new Date() < new Date(pedido.validade_orcamentos) && (
-              <div className="mt-3">
-                <OrcamentoForm
-                  pedidoId={pedido.id}
-                  onFinish={() =>
-                    fetchOrcamentos({
-                      pedidoId: pedido.id,
-                      admin: perfil.role === 'admin',
-                      isSenhorio: perfil.role === 'senhorio',
-                    }).then(setOrcs)
-                  }
-                />
-              </div>
+            {loadingOrcs ? (
+              <p>Carregando orçamentos…</p>
+            ) : (
+              <>
+                <h6>Orçamentos</h6>
+                {orcs.length === 0 ? (
+                  <p className="text-muted small">Nenhum orçamento ainda.</p>
+                ) : (
+                  orcs.map((o) => <OrcamentoCard key={o.id} orc={o} />)
+                )}
+                {isInquilino && new Date() < new Date(pedido.validade_orcamentos) && (
+                  <div className="mt-3">
+                    <OrcamentoForm
+                      pedidoId={pedido.id}
+                      onFinish={async () => {
+                        setLoadingOrcs(true);
+                        try {
+                          const lista = await fetchOrcamentos(pedido.id);
+                          setOrcs(lista);
+                        } catch (err) {
+                          console.error(err);
+                        } finally {
+                          setLoadingOrcs(false);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
         {(perfil?.role === 'admin' || perfil?.role === 'senhorio') && (
-          <div className="d-flex gap-2 mt-3">
+          <div className="mt-3 d-flex gap-2">
             <button
-              type="button"
-              onClick={() => onEdit(pedido)}
               className="btn btn-outline-warning btn-sm"
+              onClick={() => onEdit(pedido)}
             >
               Editar
             </button>
             <button
-              type="button"
-              onClick={() => onDelete(pedido.id)}
               className="btn btn-outline-danger btn-sm"
+              onClick={() => onDelete(pedido.id)}
             >
               Eliminar
             </button>
@@ -115,6 +103,4 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
       </div>
     </div>
   );
-};
-
-export default PedidoCard;
+}

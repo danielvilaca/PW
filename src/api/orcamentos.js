@@ -1,119 +1,126 @@
 // src/api/orcamentos.js
-
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Busca todos os orçamentos de um dado pedido.
- * - Se admin=true, retorna todos.
- * - Se isSenhorio=true, retorna apenas orçamentos de pedidos cujos condomínios o usuário gerencia.
- * - Caso contrário (inquilino/padrão), retorna somente os próprios orçamentos.
+ * Retorna todos os orçamentos associados a um pedido específico,
+ * filtrando pela role do perfil:
+ * - admin vê todos,
+ * - senhorio vê os do seu condomínio (assumindo relação pedido->condominio->senhorio),
+ * - inquilino vê apenas os que ele próprio criou (user_id = auth.uid()).
  *
- * @param {object} options
- *   - pedidoId (string, obrigatório): ID do pedido
- *   - admin (boolean): se true, recupera todos os orçamentos
- *   - isSenhorio (boolean): se true, recupera orçamentos dos pedidos de condomínios que o usuário gerencia
+ * @param {string} pedidoId
+ * @returns {Promise<Array>}
  */
-export const fetchOrcamentos = async ({
-  pedidoId,
-  admin = false,
-  isSenhorio = false,
-}) => {
-  // Se admin, traz tudo (não filtra pedidoId)
-  let query = supabase.from('orcamentos').select('*').order('created_at', { ascending: false });
+export async function fetchOrcamentos(pedidoId) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Não autenticado');
 
-  if (admin) {
-    // retorna todos os orçamentos (podemos opcionalmente filtrar por pedidoId, mas admin vê tudo)
-    if (pedidoId) {
-      query = query.eq('pedido_id', pedidoId);
-    }
-  } else if (isSenhorio) {
-    // traz orçamentos cujo pedido pertence a condomínio que o usuário gerencia
-    // (não podemos filtrar pelo pedidoId diretamente, pois o RLS já bloqueia tudo não autorizado)
-    if (pedidoId) {
-      query = query.eq('pedido_id', pedidoId);
-    }
-    // RLS vai garantir que o supabase só devolva orçamentos de pedidos desse senhorio
+  // Pega perfil para saber role
+  const { data: perfilData, error: perfilErr } = await supabase
+    .from('perfis')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+  if (perfilErr) throw perfilErr;
+  const perfil = perfilData;
+
+  let query = supabase.from('orcamentos').select('*').order('created_at', { ascending: true }).eq('pedido_id', pedidoId);
+
+  if (perfil.role === 'admin') {
+    // sem filtro adicional
+  } else if (perfil.role === 'senhorio') {
+    // exemplo simplificado: pega todos orçamentos cujo pedido pertence a condomínio do senhorio
+    query = query.in(
+      'pedido_id',
+      supabase
+        .from('pedidos')
+        .select('id')
+        .in(
+          'condominio_id',
+          supabase
+            .from('senhorio_condominio')
+            .select('condominio_id')
+            .eq('senhorio_id', perfil.user_id)
+        )
+    );
   } else {
-    // inquilino/fornecedor: só os próprios orçamentos
-    query = query
-      .eq('pedido_id', pedidoId)
-      .eq('user_id', (await supabase.auth.getUser()).data.user.id);
+    // inquilino: só orçamentos que ele mesmo criou para esse pedido
+    query = query.eq('user_id', user.id);
   }
 
   const { data, error } = await query;
   if (error) throw error;
   return data;
-};
+}
 
 /**
- * Cria um novo orçamento.
- * O objeto data deve conter, no mínimo:
- *   - pedido_id  (UUID)
- *   - fornecedor (string)
- *   - contacto   (string)
- *   - valor      (number)
- *   - anexo_url  (string, URL do Storage)
+ * Cria um novo orçamento para um pedido (pedido_id), associando user_id automaticamente.
  *
- *  O backend completará com:
- *   - user_id     (UUID retirado de supabase.auth.getUser())
- *   - created_at  (timestamp automático no banco)
+ * @param {{ pedido_id: string, fornecedor: string, contacto: string, valor: number, anexo_url: string }} orcData
  */
-export const createOrcamento = async (data) => {
+export async function createOrcamento({ pedido_id, fornecedor, contacto, valor, anexo_url }) {
   const {
     data: { user },
-    error: userErr,
   } = await supabase.auth.getUser();
-  if (userErr) throw userErr;
+  if (!user) throw new Error('Não autenticado');
 
-  const novo = {
-    ...data,
-    user_id: user.id,
-  };
-
-  const { data: inserted, error } = await supabase
+  const { data, error } = await supabase
     .from('orcamentos')
-    .insert(novo)
-    .select('*')
+    .insert([
+      {
+        pedido_id,
+        user_id: user.id,
+        fornecedor,
+        contacto,
+        valor,
+        anexo_url,
+      },
+    ])
+    .select()
     .single();
 
   if (error) throw error;
-  return inserted;
-};
+  return data;
+}
 
 /**
- * Atualiza um orçamento existente.
+ * Atualiza um orçamento já existente (o próprio inquilino ou senhorio/admin pode editar, de acordo com RLS).
+ *
  * @param {string} id
- * @param {object} updates - campos a alterar, ex.: { valor: 150, fornecedor: 'Nova Empresa', anexo_url: '...' }
+ * @param {Object} updates → { fornecedor?, contacto?, valor?, anexo_url?, estado? }
  */
-export const updateOrcamento = async (id, updates) => {
-  // RLS garantirá que apenas quem pode atualizar (fornecedor próprio OU senhorio/admin) consiga
-  const { data: updated, error } = await supabase
+export async function updateOrcamento(id, updates) {
+  const { data, error } = await supabase
     .from('orcamentos')
     .update(updates)
     .eq('id', id)
-    .select('*')
+    .select()
     .single();
 
   if (error) throw error;
-  return updated;
-};
+  return data;
+}
 
 /**
- * Deleta um orçamento. (Somente quem pode: fornecedor, senhorio ou admin.)
+ * Exclui um orçamento (admin ou proprietário ou senhorio pode, conforme RLS).
+ *
  * @param {string} id
  */
-export const deleteOrcamento = async (id) => {
-  const { error } = await supabase.from('orcamentos').delete().eq('id', id);
+export async function deleteOrcamento(id) {
+  const { data, error } = await supabase.from('orcamentos').delete().eq('id', id);
   if (error) throw error;
-  return true;
-};
+  return data;
+}
 
 /**
- * Recupera um único orçamento pelo ID.
+ * Pega um orçamento específico pelo ID (útil para ver detalhes ou edição).
+ *
  * @param {string} id
  */
-export const getOrcamentoById = async (id) => {
+export async function getOrcamentoById(id) {
   const { data, error } = await supabase.from('orcamentos').select('*').eq('id', id).single();
   if (error) throw error;
   return data;
-};
+}

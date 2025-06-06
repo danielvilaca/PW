@@ -1,142 +1,165 @@
 // src/components/OrcamentoCard.js
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { updateOrcamento, deleteOrcamento } from '../api/orcamentos';
 
 /**
- * Exibe um orçamento em card, com ações de “Editar”, “Excluir” ou “Aprovar”
- * dependendo do perfil.
+ * Exibe um orçamento em formato de card, com botões para editar/excluir (se permitido).
  *
  * Props:
- *   - orcamento: { id, fornecedor, contacto, valor, anexo_url, user_id, created_at, aprovado (opcional) }
- *   - onEdit(updates)  → função chamada para atualizar (fornecedor ou admin/senhorio)
- *   - onDelete()       → função chamada para excluir
- *   - onApprove()      → função chamada para aprovar (somente para senhorio/admin)
- *   - perfil: objeto do `AuthContext` (com perfil.role e perfil.user_id)
+ *  - orc: {
+ *      id: string,
+ *      pedido_id: string,
+ *      user_id: string,
+ *      fornecedor: string,
+ *      contacto: string,
+ *      valor: number,
+ *      anexo_url: string,
+ *      created_at: string
+ *    }
  */
-export default function OrcamentoCard({ orcamento, onEdit, onDelete, onApprove, perfil }) {
+export default function OrcamentoCard({ orc }) {
+  const { perfil } = useAuth();
+  const isAdmin    = perfil?.role === 'admin';
+  const isSenhorio = perfil?.role === 'senhorio';
+  const isAutor    = perfil?.user_id === orc.user_id;
+
+  // Decide se pode editar/excluir:
+  const podeEditar = isAdmin || isAutor || isSenhorio;
+  const podeExcluir = isAdmin || isAutor;
+
   const [editMode, setEditMode] = useState(false);
-  const [valorEdit, setValorEdit] = useState(orcamento.valor);
-  const [fornecedorEdit, setFornecedorEdit] = useState(orcamento.fornecedor);
-  const [contactoEdit, setContactoEdit] = useState(orcamento.contacto);
+  const [fornecedor, setFornecedor] = useState(orc.fornecedor);
+  const [contacto, setContacto]     = useState(orc.contacto);
+  const [valor, setValor]           = useState(orc.valor);
+  const [anexoUrl, setAnexoUrl]     = useState(orc.anexo_url);
+  const [saving, setSaving]         = useState(false);
 
-  const isFornecedor = perfil.user_id === orcamento.user_id;
-  const isAdmin = perfil.role === 'admin';
-  const isSenhorio = perfil.role === 'senhorio';
-
-  const podeAprovar = (isSenhorio || isAdmin) && orcamento.estado !== 'Aprovado'; // ajuste conforme seu modelo
-  const podeEditar = isFornecedor && orcamento.estado === 'Aberto';
-  const podeExcluir = (isFornecedor && orcamento.estado === 'Aberto') || isAdmin;
-
-  const handleSave = () => {
-    if (!fornecedorEdit || !contactoEdit || !valorEdit) {
-      alert('Preencha todos os campos.');
-      return;
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateOrcamento(orc.id, { fornecedor, contacto, valor: Number(valor), anexo_url: anexoUrl });
+      setEditMode(false);
+    } catch (err) {
+      console.error('Erro ao editar orçamento:', err);
+      alert('Falha ao atualizar orçamento. Veja console.');
+    } finally {
+      setSaving(false);
     }
-    onEdit({ fornecedor: fornecedorEdit, contacto: contactoEdit, valor: Number(valorEdit) });
-    setEditMode(false);
   };
 
-  return (
-    <div className="mb-4 p-4 bg-white rounded shadow border flex flex-col">
-      {!editMode ? (
-        <>
-          <div className="flex justify-between">
-            <div>
-              <p><strong>Fornecedor:</strong> {orcamento.fornecedor}</p>
-              <p><strong>Contacto:</strong> {orcamento.contacto}</p>
-              <p><strong>Valor:</strong> €{orcamento.valor.toFixed(2)}</p>
-              {orcamento.anexo_url && (
-                <p>
-                  <a
-                    href={orcamento.anexo_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Ver Anexo
-                  </a>
-                </p>
+  const handleDelete = async () => {
+    if (!window.confirm('Eliminar este orçamento?')) return;
+    try {
+      await deleteOrcamento(orc.id);
+      // Opcional: você pode disparar algo para remover este card da lista
+      window.location.reload(); // solução básica: recarrega toda a página de pedidos
+    } catch (err) {
+      console.error('Erro ao excluir orçamento:', err);
+      alert('Falha ao excluir. Veja console.');
+    }
+  };
+
+  if (!editMode) {
+    return (
+      <div className="card mb-2 p-2">
+        <div className="d-flex justify-content-between">
+          <div>
+            <p><strong>Fornecedor:</strong> {orc.fornecedor}</p>
+            <p><strong>Contacto:</strong> {orc.contacto}</p>
+            <p><strong>Valor:</strong> €{orc.valor.toFixed(2)}</p>
+            {orc.anexo_url && (
+              <p>
+                <strong>Anexo:</strong>{' '}
+                <a href={orc.anexo_url} target="_blank" rel="noreferrer">Ver</a>
+              </p>
+            )}
+            <p className="text-muted small">
+              Criado em: {new Date(orc.created_at).toLocaleString()}
+            </p>
+          </div>
+          {(podeEditar || podeExcluir) && (
+            <div className="d-flex flex-column align-items-end gap-2">
+              {podeEditar && (
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setEditMode(true)}
+                >
+                  Editar
+                </button>
+              )}
+              {podeExcluir && (
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={handleDelete}
+                >
+                  Excluir
+                </button>
               )}
             </div>
-            <div className="text-sm text-gray-500">
-              {new Date(orcamento.created_at).toLocaleDateString()}
-            </div>
-          </div>
-
-          <div className="mt-3 flex gap-2">
-            {podeEditar && (
-              <button
-                onClick={() => setEditMode(true)}
-                className="text-yellow-600 hover:underline"
-              >
-                Editar
-              </button>
-            )}
-            {podeExcluir && (
-              <button
-                onClick={onDelete}
-                className="text-red-600 hover:underline"
-              >
-                Excluir
-              </button>
-            )}
-            {podeAprovar && (
-              <button
-                onClick={onApprove}
-                className="text-green-600 hover:underline"
-              >
-                Aprovar
-              </button>
-            )}
-          </div>
-        </>
-      ) : (
-        // Modo edição
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium">Fornecedor</label>
-            <input
-              type="text"
-              value={fornecedorEdit}
-              onChange={(e) => setFornecedorEdit(e.target.value)}
-              className="w-full border p-2 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Contacto</label>
-            <input
-              type="text"
-              value={contactoEdit}
-              onChange={(e) => setContactoEdit(e.target.value)}
-              className="w-full border p-2 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Valor (€)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={valorEdit}
-              onChange={(e) => setValorEdit(e.target.value)}
-              className="w-full border p-2 rounded"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              className="bg-blue-600 text-white px-3 py-1 rounded"
-            >
-              Salvar
-            </button>
-            <button
-              onClick={() => setEditMode(false)}
-              className="bg-gray-300 text-gray-700 px-3 py-1 rounded"
-            >
-              Cancelar
-            </button>
-          </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  // Modo edição
+  return (
+    <form onSubmit={handleSave} className="card p-2 mb-2">
+      <div className="row g-2">
+        <div className="col-md-3">
+          <input
+            type="text"
+            className="form-control"
+            value={fornecedor}
+            onChange={(e) => setFornecedor(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-md-3">
+          <input
+            type="text"
+            className="form-control"
+            value={contacto}
+            onChange={(e) => setContacto(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-md-3">
+          <input
+            type="number"
+            step="0.01"
+            className="form-control"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            required
+          />
+        </div>
+        <div className="col-md-3">
+          <input
+            type="text"
+            className="form-control"
+            value={anexoUrl}
+            onChange={(e) => setAnexoUrl(e.target.value)}
+            placeholder="URL Anexo"
+          />
+        </div>
+      </div>
+      <div className="d-flex justify-content-end gap-2 mt-2">
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={() => setEditMode(false)}
+          disabled={saving}
+        >
+          Cancelar
+        </button>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+          {saving ? 'A guardar…' : 'Guardar'}
+        </button>
+      </div>
+    </form>
   );
 }

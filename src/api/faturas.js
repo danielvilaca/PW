@@ -1,115 +1,119 @@
 // src/api/faturas.js
-
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Busca faturas:
- * - Se admin=true, retorna todas,
- * - Se isSenhorio=true, retorna as faturas de pagamentos de inquilinos de condomínios que ele gere,
- * - Caso contrário, retorna apenas as próprias faturas (inquilino).
+ * Busca todas as faturas para o perfil atual:
+ * - admin vê todas,
+ * - “inquilino” só vê as faturas cujo user_id = auth.uid(),
+ * - “senhorio” (se aplicável) só vê faturas de inquilinos de seus condomínios.
  *
- * @param {object} options
- *   - admin (boolean)
- *   - isSenhorio (boolean)
+ * @param {{ admin?: boolean }} opts → se admin=true, ignora filtro de user_id
  */
-export const fetchFaturas = async ({ admin = false, isSenhorio = false } = {}) => {
-  let query = supabase.from('faturas').select('*').order('created_at', { ascending: false });
+export async function fetchFaturas({ admin = false } = {}) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Não autenticado');
 
-  if (admin) {
-    // admin vê tudo
-  } else if (isSenhorio) {
-    // RLS filtra somente faturas cujos pagamentos são de seus condomínios
+  // Pega perfil para identificar role
+  const { data: perfilData, error: perfilErr } = await supabase
+    .from('perfis')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+  if (perfilErr) throw perfilErr;
+  const perfil = perfilData;
+
+  let query = supabase.from('faturas').select('*').order('ano', { ascending: false }).order('mes', { ascending: false });
+
+  if (perfil.role === 'admin') {
+    // sem filtro
+  } else if (perfil.role === 'senhorio') {
+    // ex.: supor que “faturas” tem coluna condominio_id:
+    query = query.in(
+      'condominio_id',
+      supabase
+        .from('senhorio_condominio')
+        .select('condominio_id')
+        .eq('senhorio_id', perfil.user_id)
+    );
   } else {
-    // inquilino: filtra por user_id
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-    if (userErr) throw userErr;
+    // inquilino: só faturas associadas ao próprio user_id
     query = query.eq('user_id', user.id);
   }
 
   const { data, error } = await query;
   if (error) throw error;
   return data;
-};
+}
 
 /**
- * Cria/gera uma nova fatura a partir de um pagamento existente.
- * @param {object} data - deve conter:
- *   - pagamento_id (UUID)  → para relacionamento
- *   - ano           (number)
- *   - mes           (number)
- *   - valor         (number)
- *   - user_id       (UUID do inquilino) (pode ser preenchido como parte da payload)
+ * Cria nova fatura para ano/mes especificados, associando user_id automáticamente.
+ * Também aceita um URL de PDF já gerado (pdf_url).
  *
- *  O backend complementa:
- *   - created_at (timestamp automático no banco)
+ * @param {{ user_id?: string, condominio_id?: string, ano: number, mes: number, valor: number, pago?: boolean, pdf_url?: string }} faturaData
  */
-export const createFatura = async (data) => {
-  // Se o front não passar user_id, busca do pagamento
-  let { user_id } = data;
+export async function createFatura({ ano, mes, valor, condominio_id, pdf_url = null }) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Não autenticado');
 
-  if (!user_id) {
-    // extrai o user_id diretamente do registro de pagamento
-    const { data: pagamento, error: pgErr } = await supabase
-      .from('pagamentos')
-      .select('user_id')
-      .eq('id', data.pagamento_id)
-      .single();
-    if (pgErr) throw pgErr;
-    user_id = pagamento.user_id;
-  }
-
-  const body = {
-    ...data,
-    user_id,
-    pago: data.pago ?? false,
-  };
-
-  const { data: inserted, error } = await supabase
+  const { data, error } = await supabase
     .from('faturas')
-    .insert(body)
-    .select('*')
+    .insert([
+      {
+        user_id: user.id,
+        condominio_id,
+        ano,
+        mes,
+        valor,
+        pago: false,
+        pdf_url,
+      },
+    ])
+    .select()
     .single();
 
   if (error) throw error;
-  return inserted;
-};
+  return data;
+}
 
 /**
- * Atualiza uma fatura existente (ex.: marca como paga ou atualiza pdf_url).
+ * Marca a fatura como paga (pago = true) e retorna o registo atualizado.
+ *
  * @param {string} id
- * @param {object} updates - ex.: { pago: true, pdf_url: 'https://...' }
  */
-export const updateFatura = async (id, updates) => {
-  const { data: updated, error } = await supabase
+export async function updateFatura(id, updates) {
+  const { data, error } = await supabase
     .from('faturas')
     .update(updates)
     .eq('id', id)
-    .select('*')
+    .select()
     .single();
 
   if (error) throw error;
-  return updated;
-};
+  return data;
+}
 
 /**
- * Deleta uma fatura (admin apenas).
+ * Deleta a fatura (apenas admin ou inquilino próprio até certo ponto, conforme RLS).
+ *
  * @param {string} id
  */
-export const deleteFatura = async (id) => {
-  const { error } = await supabase.from('faturas').delete().eq('id', id);
+export async function deleteFatura(id) {
+  const { data, error } = await supabase.from('faturas').delete().eq('id', id);
   if (error) throw error;
-  return true;
-};
+  return data;
+}
 
 /**
- * Busca uma fatura pelo ID.
+ * Pega uma fatura específica por ID (útil para visualizar ou gerar PDF completo).
+ *
  * @param {string} id
  */
-export const getFaturaById = async (id) => {
+export async function getFaturaById(id) {
   const { data, error } = await supabase.from('faturas').select('*').eq('id', id).single();
   if (error) throw error;
   return data;
-};
+}

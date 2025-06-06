@@ -1,107 +1,117 @@
 // src/api/pagamentos.js
-
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Busca todos os pagamentos do usuário atual (inquilino), ou de todo o condomínio (senhorio), ou todos (admin).
- * @param {object} options
- *   - admin (boolean): se true, retorna todos
- *   - isSenhorio (boolean): se true, retorna pagamentos de condomínios que o usuário gerencia
+ * Retorna todos os pagamentos visíveis para o user logado:
+ * admin vê todos, senhorio só dos seus condomínios, inquilino apenas seus próprios.
+ *
+ * @returns {Promise<Array>}
  */
-export const fetchPagamentos = async ({ admin = false, isSenhorio = false } = {}) => {
+export async function fetchPagamentos() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Não autenticado');
+
+  const { data: perfilData, error: perfilErr } = await supabase
+    .from('perfis')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+  if (perfilErr) throw perfilErr;
+  const perfil = perfilData;
+
   let query = supabase.from('pagamentos').select('*').order('created_at', { ascending: false });
 
-  if (admin) {
-    // admin vê tudo
-  } else if (isSenhorio) {
-    // RLS irá filtrar somente pagamentos de condomínios que ele gerencia
+  if (perfil.role === 'admin') {
+    // sem filtro extra
+  } else if (perfil.role === 'senhorio') {
+    // exemplo: selecionar só pagamentos do(s) condominio(s) que o senhorio administra
+    query = query.in(
+      'condominio_id',
+      supabase
+        .from('senhorio_condominio')
+        .select('condominio_id')
+        .eq('senhorio_id', perfil.user_id)
+    );
   } else {
-    // inquilino: filtra por user_id
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-    if (userErr) throw userErr;
+    // inquilino: só pagamentos que ele próprio criou
     query = query.eq('user_id', user.id);
   }
 
   const { data, error } = await query;
   if (error) throw error;
   return data;
-};
+}
 
 /**
- * Cria um novo pagamento (registro de comprovante ou cobrança).
- * @param {object} data - deve conter:
- *   - user_id       (UUID do inquilino)
- *   - condominio_id (UUID do condomínio)
- *   - descricao     (string)
- *   - valor         (number)
- *   - data_pg       (string ou Date)
- *   - estado        (string, ex.: 'pendente')
- *   - metodo        (string)
- *   - tipo          (string, ex.: 'renda', 'agua')
- *   - comprovante_url (string, opcional)
+ * Cria um pagamento, associando automaticamente user_id = auth.uid().
  *
- *  Se for inquilino, `user_id` virá do próprio supabase.auth.getUser().id.
- *  Se for senhorio, passará user_id do formulário (desde que pertença a um condomínio dele).
+ * @param {{ condominio_id: string, descricao: string, valor: number, data_pg: string, metodo: string, tipo: string }} payData
  */
-export const createPagamento = async (data) => {
+export async function createPagamento({ condominio_id, descricao, valor, data_pg, metodo, tipo }) {
   const {
     data: { user },
-    error: userErr,
   } = await supabase.auth.getUser();
-  if (userErr) throw userErr;
+  if (!user) throw new Error('Não autenticado');
 
-  // Se o front não enviou user_id (um pagamento feito pelo próprio inquilino), crie como ele
-  const body = {
-    ...data,
-    user_id: data.user_id || user.id,
-  };
-
-  const { data: inserted, error } = await supabase
+  const { data, error } = await supabase
     .from('pagamentos')
-    .insert(body)
-    .select('*')
+    .insert([
+      {
+        user_id: user.id,
+        condominio_id,
+        descricao,
+        valor,
+        data_pg,
+        estado: 'pendente',
+        metodo,
+        tipo,
+      },
+    ])
+    .select()
     .single();
 
   if (error) throw error;
-  return inserted;
-};
+  return data;
+}
 
 /**
- * Atualiza um pagamento existente (ex.: inquilino anexar comprovante, ou senhorio aprovar).
+ * Atualiza um pagamento existente (admin ou senhorio ou inquilino próprio pode atualizar, conforme RLS).
+ *
  * @param {string} id
- * @param {object} updates - ex.: { estado: 'confirmado', comprovante_url: '...' }
+ * @param {{ condominio_id?: string, descricao?: string, valor?: number, data_pg?: string, estado?: string, metodo?: string, tipo?: string }} updates
  */
-export const updatePagamento = async (id, updates) => {
-  const { data: updated, error } = await supabase
+export async function updatePagamento(id, updates) {
+  const { data, error } = await supabase
     .from('pagamentos')
     .update(updates)
     .eq('id', id)
-    .select('*')
+    .select()
     .single();
 
   if (error) throw error;
-  return updated;
-};
+  return data;
+}
 
 /**
- * Deleta um pagamento (inquilino próprio ou senhorio/admin).
+ * Exclui um pagamento (admin ou proprietário ou senhorio pode, de acordo com RLS).
+ *
  * @param {string} id
  */
-export const deletePagamento = async (id) => {
-  const { error } = await supabase.from('pagamentos').delete().eq('id', id);
+export async function deletePagamento(id) {
+  const { data, error } = await supabase.from('pagamentos').delete().eq('id', id);
   if (error) throw error;
-  return true;
-};
+  return data;
+}
 
 /**
- * Busca um pagamento pelo ID.
+ * Pega um pagamento específico pelo ID.
+ *
  * @param {string} id
  */
-export const getPagamentoById = async (id) => {
+export async function getPagamentoById(id) {
   const { data, error } = await supabase.from('pagamentos').select('*').eq('id', id).single();
   if (error) throw error;
   return data;
-};
+}
