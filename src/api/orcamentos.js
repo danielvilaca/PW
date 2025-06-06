@@ -1,101 +1,103 @@
 // src/api/orcamentos.js
-
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Retorna todos os orçamentos de um pedido, incluindo
- * o nome e o foto_url do usuário (via perfis).
+ * Recupera todos os orçamentos de um pedido específico.
+ * @param {string} pedidoId → o PK de “pedidos.id”
+ * @returns {Promise<Array>} lista de orçamentos
  */
-export const fetchOrcamentos = async (pedido_id) => {
-  // No Supabase, “perfis” é a tabela que guarda { user_id, nome, foto_url, role, ... }
-  // Usamos “perfis!inner(nome, foto_url)” para trazer esses dois campos.
+export async function fetchOrcamentos(pedidoId) {
   const { data, error } = await supabase
     .from('orcamentos')
-    .select(`
-      id,
-      pedido_id,
-      fornecedor,
-      contacto,
-      valor,
-      anexo_url,
-      user_id,
-      perfis!inner(nome, foto_url),
-      created_at
-    `)
-    .eq('pedido_id', pedido_id)
+    .select('*')
+    .eq('pedido_id', pedidoId)
     .order('created_at', { ascending: false });
-
   if (error) throw error;
-
-  // Ajustamos o formato para que OrcamentoCard tenha “nome” e “foto_url” diretamente:
-  return data.map((o) => ({
-    id: o.id,
-    pedido_id: o.pedido_id,
-    fornecedor: o.fornecedor,
-    contacto: o.contacto,
-    valor: o.valor,
-    anexo_url: o.anexo_url,
-    created_at: o.created_at,
-    user_id: o.user_id,
-    nome: o.perfis.nome,
-    foto_url: o.perfis.foto_url,
-  }));
-};
+  return data;
+}
 
 /**
- * Cria um novo orçamento. Deve passar { pedido_id, fornecedor, contacto, valor, anexo_url }
- * e supor que supabase.auth.getUser() deu o “user_id” do inquilino atualmente logado.
+ * Cria um novo orçamento associado a um pedido (quem submete é o inquilino).
+ * Usamos “perfil.id” como FK em “orcamentos.user_id” (semelhante aos pedidos).
+ * @param {{
+ *   pedido_id: string,
+ *   fornecedor: string,
+ *   contacto: string,
+ *   valor: number,
+ *   anexo_url: string (opcional)
+ * }} orcData
+ * @returns {Promise<Object>} → o registro inserido
  */
-export const createOrcamento = async ({
-  pedido_id,
-  fornecedor,
-  contacto,
-  valor,
-  anexo_url,
-}) => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
+export async function createOrcamento({ pedido_id, fornecedor, contacto, valor, anexo_url }) {
+  // 1) Obter user + perfil (para user_id = perfil.id)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Não autenticado');
 
+  // 2) Buscar perfil
+  const { data: perfilData, error: perfilErr } = await supabase
+    .from('perfis')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+  if (perfilErr) throw perfilErr;
+  const perfil = perfilData;
+
+  // 3) Inserir no “orcamentos”
   const { data, error } = await supabase
     .from('orcamentos')
     .insert([
       {
         pedido_id,
+        user_id: perfil.id,
         fornecedor,
         contacto,
         valor,
-        anexo_url,
-        user_id: user.id,
+        anexo_url: anexo_url || null,
       },
     ])
-    .select('*')
+    .select()
     .single();
 
   if (error) throw error;
   return data;
-};
+}
 
-export const updateOrcamento = async (id, updates) => {
+/**
+ * Atualiza um orçamento existente (por id, PK de “orcamentos.id”).
+ * @param {string} id → PK de “orcamentos.id”
+ * @param {{ fornecedor?: string, contacto?: string, valor?: number, anexo_url?: string }} updates
+ * @returns {Promise<Object>} → registro atualizado
+ */
+export async function updateOrcamento(id, updates) {
   const { data, error } = await supabase
     .from('orcamentos')
     .update(updates)
     .eq('id', id)
-    .select('*')
+    .select()
     .single();
-
   if (error) throw error;
   return data;
-};
+}
 
-export const deleteOrcamento = async (id) => {
-  const { error } = await supabase.from('orcamentos').delete().eq('id', id);
+/**
+ * Elimina um orçamento (PK).
+ * @param {string} id → PK de “orcamentos.id”
+ */
+export async function deleteOrcamento(id) {
+  const { data, error } = await supabase
+    .from('orcamentos')
+    .delete()
+    .eq('id', id);
   if (error) throw error;
-  return true;
-};
+  return data;
+}
 
-export const getOrcamentoById = async (id) => {
+/**
+ * Busca somente um orçamento pelo seu PK.
+ * @param {string} id → PK de “orcamentos.id”
+ * @returns {Promise<Object>}
+ */
+export async function getOrcamentoById(id) {
   const { data, error } = await supabase
     .from('orcamentos')
     .select('*')
@@ -103,4 +105,4 @@ export const getOrcamentoById = async (id) => {
     .single();
   if (error) throw error;
   return data;
-};
+}

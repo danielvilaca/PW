@@ -1,106 +1,114 @@
 // src/components/PedidoFormModal.js
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../auth/AuthContext';
-import { Modal, Button, Form } from 'react-bootstrap';
+import React, { useState } from 'react';
 
+/**
+ * Modal para criar um novo pedido:
+ *
+ * Props:
+ *  - visible: boolean → mostrar ou não
+ *  - onClose: () => void
+ *  - onCreate: ({ titulo, descricao, validade_orcamentos }) => void
+ */
 export default function PedidoFormModal({ visible, onClose, onCreate }) {
-  const { perfil } = useAuth();
-  const isInquilino = perfil?.role === 'inquilino';
-
-  // Campos do formulário
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [validade, setValidade] = useState('');
 
-  // Calcula data padrão de hoje + 30 dias
-  useEffect(() => {
-    if (!visible) return;
+  const [errorMsg, setErrorMsg] = useState('');
+  const [saving, setSaving] = useState(false);
 
-    if (isInquilino) {
-      const hoje = new Date();
-      hoje.setDate(hoje.getDate() + 30);
-      // Formato YYYY-MM-DD
-      const dd = String(hoje.getDate()).padStart(2, '0');
-      const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-      const yyyy = hoje.getFullYear();
-      setValidade(`${yyyy}-${mm}-${dd}`);
-    } else {
-      // admin/senhorio pode inserir outra data – deixamos em branco para preencher
-      setValidade('');
-    }
-    setTitulo('');
-    setDescricao('');
-  }, [visible, isInquilino]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
 
-    // O onCreate espera um objeto { titulo, descricao, validade_orcamentos }
-    onCreate({
-      titulo: titulo.trim(),
-      descricao: descricao.trim(),
-      validade_orcamentos: validade,
-    });
+    if (!titulo.trim() || !descricao.trim() || !validade) {
+      setErrorMsg('Preencha todos os campos.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onCreate({
+        titulo: titulo.trim(),
+        descricao: descricao.trim(),
+        validade_orcamentos: validade,
+      });
+      // limpa
+      setTitulo('');
+      setDescricao('');
+      setValidade('');
+      setSaving(false);
+    } catch (err) {
+      console.error('PedidoFormModal → erro ao criar:', err);
+      setErrorMsg('Falha ao criar pedido. Veja console.');
+      setSaving(false);
+    }
   };
 
+  if (!visible) return null;
   return (
-    <Modal show={visible} onHide={onClose} centered backdrop="static">
-      <Form onSubmit={handleSubmit}>
-        <Modal.Header closeButton>
-          <Modal.Title>Novo Pedido</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {/* Título */}
-          <Form.Group className="mb-3" controlId="formTitulo">
-            <Form.Label>Título</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Digite o título do pedido"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              required
-            />
-          </Form.Group>
-
-          {/* Descrição */}
-          <Form.Group className="mb-3" controlId="formDescricao">
-            <Form.Label>Descrição</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              placeholder="Descreva o pedido"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              required
-            />
-          </Form.Group>
-
-          {/* Validade – se for inquilino, campo desativado */}
-          <Form.Group className="mb-3" controlId="formValidade">
-            <Form.Label>Validade de Orçamentos</Form.Label>
-            <Form.Control
-              type="date"
-              value={validade}
-              onChange={(e) => setValidade(e.target.value)}
-              required
-              disabled={isInquilino}
-            />
-            {isInquilino && (
-              <Form.Text className="text-muted">
-                Como inquilino, a validade será 30 dias a partir de hoje.
-              </Form.Text>
+    <div
+      className="modal show d-block"
+      tabIndex="-1"
+      role="dialog"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+    >
+      <div className="modal-dialog" role="document">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">Novo Pedido</h5>
+            <button type="button" className="btn-close" onClick={onClose}></button>
+          </div>
+          <form onSubmit={handleSubmit} className="modal-body">
+            {errorMsg && (
+              <div className="alert alert-danger py-1">{errorMsg}</div>
             )}
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button variant="primary" type="submit">
-            Criar Pedido
-          </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
+            <div className="mb-3">
+              <label className="form-label">Título *</label>
+              <input
+                type="text"
+                className="form-control"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Descrição *</label>
+              <textarea
+                className="form-control"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                rows={3}
+                required
+              ></textarea>
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Validade de Orçamentos *</label>
+              <input
+                type="date"
+                className="form-control"
+                value={validade}
+                onChange={(e) => setValidade(e.target.value)}
+                required
+              />
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onClose}
+                disabled={saving}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? 'A criar…' : 'Criar'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
