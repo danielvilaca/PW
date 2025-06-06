@@ -1,58 +1,12 @@
 // src/api/pedidos.js
-
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Garante que há um registro em perfis.user_id = user.id.
- * Se já existir, retorna-o; se não, cria um perfil “default” de inquilino.
- */
-async function ensurePerfilExists(user) {
-  // 1. Tenta buscar um perfil cujo user_id === user.id
-  const { data: existingPerfil, error: fetchErr } = await supabase
-    .from('perfis')
-    .select('*')
-    .eq('user_id', user.id)
-    .single();
-
-  // Se houver erro diferente de “row not found” (PGRST116), relança
-  if (fetchErr && fetchErr.code !== 'PGRST116') {
-    throw fetchErr;
-  }
-
-  // Se já existe, devolve
-  if (existingPerfil) {
-    return existingPerfil;
-  }
-
-  // 2. Se não existe, cria um perfil default com role = 'inquilino'
-  const defaultPerfil = {
-    user_id: user.id,
-    nome: '',
-    role: 'inquilino',
-    foto_url: null,
-    // (quaisquer outros campos obrigatórios em “perfis” podem ir aqui, ex. validated: false, email: user.email, etc.)
-  };
-
-  const { data: newPerfil, error: createErr } = await supabase
-    .from('perfis')
-    .insert(defaultPerfil)
-    .select()
-    .single();
-
-  if (createErr) {
-    throw createErr;
-  }
-
-  return newPerfil;
-}
-
-/**
- * fetchPedidos()
+ * Recupera todos os pedidos visíveis para o utilizador atual,
+ * filtrando automaticamente pelo perfil (user_id ou condições de senhorio).
+ * Se for admin (role='admin'), recupera todos.
  *
- * Recupera todos os pedidos que o utilizador logado pode ver:
- * - admin → todos os pedidos
- * - senhorio → nenhum filtro (já que não há condominio_id)
- * - inquilino → apenas os seus próprios pedidos (user_id = current user.id)
+ * @returns {Promise<Array>} lista de pedidos
  */
 export async function fetchPedidos() {
   const {
@@ -60,16 +14,16 @@ export async function fetchPedidos() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  // Busca role no perfil
+  // Busca o perfil para saber role
   const { data: perfilData, error: perfilErr } = await supabase
     .from('perfis')
-    .select('role,user_id')
+    .select('*')
     .eq('user_id', user.id)
     .single();
   if (perfilErr) throw perfilErr;
-
   const perfil = perfilData;
 
+  // Começamos por obter todos, ordenados por created_at
   let query = supabase
     .from('pedidos')
     .select('*')
@@ -78,8 +32,18 @@ export async function fetchPedidos() {
   if (perfil.role === 'admin') {
     // Sem filtro
   } else if (perfil.role === 'senhorio') {
-    // Aqui, como supomos que NÃO há condominio_id, damos acesso a todos.
-    // (Se futuramente tiver condominio_id, bastaria filtrar via in('condominio_id', […]).)
+    // Se daqui para a frente precisar de “filtrar por condomínio_id”,
+    // descomente e ajuste a subquery abaixo. No momento,
+    // para simplificar, assume-se que tudo faz parte de um único condomínio:
+    //
+    // query = query.in(
+    //   'condominio_id',
+    //   supabase
+    //     .from('senhorio_condominio')
+    //     .select('condominio_id')
+    //     .eq('senhorio_id', perfil.user_id)
+    // );
+
   } else {
     // inquilino: apenas os próprios
     query = query.eq('user_id', user.id);
@@ -91,20 +55,29 @@ export async function fetchPedidos() {
 }
 
 /**
- * criarPedido({ titulo, descricao, validade_orcamentos })
+ * Cria um novo pedido, associando automaticamente o user_id do utilizador logado.
  *
- * Antes de inserir, garante que exista um perfil (perfis.user_id = user.id).
+ * @param {{
+ *   titulo: string,
+ *   descricao: string,
+ *   validade_orcamentos: string (YYYY-MM-DD),
+ *   condominio_id: uuid (pode ficar nulo ou valor fixo)
+ * }} pedidoData
  */
-export async function criarPedido({ titulo, descricao, validade_orcamentos }) {
+export async function criarPedido({
+  titulo,
+  descricao,
+  validade_orcamentos,
+  condominio_id = null, // se vai ser um único condomínio, podemos usar null ou um valor fixo
+}) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  // Garante que haja perfis.user_id = user.id
-  await ensurePerfilExists(user);
-
-  // Insere sem condominio_id (porque tudo faz parte do mesmo condomínio por enquanto)
+  // Tentar inserir user_id. Se ainda não existir perfil para este user,
+  // vai dar “violates foreign key” (porque user_id não está em perfis).
+  // Por isso, certifique-se de que todo utilizador tenha perfil criado primeiro.
   const { data, error } = await supabase
     .from('pedidos')
     .insert([
@@ -113,8 +86,8 @@ export async function criarPedido({ titulo, descricao, validade_orcamentos }) {
         titulo,
         descricao,
         validade_orcamentos,
-        estado: 'Aberto',
-        // condominio_id deixamos de usar (ou ele nem existe em schema)
+        condominio_id,
+        estado: 'Aberto', // valor padrão
       },
     ])
     .select()
@@ -125,9 +98,9 @@ export async function criarPedido({ titulo, descricao, validade_orcamentos }) {
 }
 
 /**
- * updatePedido(id, updates)
- *
- * Atualiza um pedido já existente. (RLS suporá quem pode editar.)
+ * Atualiza um pedido existente (por id), retornando o registo atualizado.
+ * O RLS no Supabase só permite que quem tiver permissão (admin, senhorio do condomínio ou próprio inquilino em 'Aberto')
+ * faça o update.
  */
 export async function updatePedido(id, updates) {
   const { data, error } = await supabase
@@ -141,20 +114,19 @@ export async function updatePedido(id, updates) {
 }
 
 /**
- * deletePedido(id)
- *
- * Apaga o pedido cujo ID = id. (RLS suporá se o user pode ou não.)
+ * Elimina um pedido (apenas admin ou proprietário ou senhorio do condomínio pode).
  */
 export async function deletePedido(id) {
-  const { data, error } = await supabase.from('pedidos').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('pedidos')
+    .delete()
+    .eq('id', id);
   if (error) throw error;
   return data;
 }
 
 /**
- * getPedidoById(id)
- *
- * Pega um único pedido por ID.
+ * Obtém um pedido pelo seu ID.
  */
 export async function getPedidoById(id) {
   const { data, error } = await supabase

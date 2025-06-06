@@ -1,94 +1,97 @@
 // src/App.js
-
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
-import PrivateRoute from './auth/PrivateRoute';
 
-import Login from './pages/login';
-import CondominiosPage from './pages/CondominiosPage';
-import PedidosPage from './pages/PedidosPage';
-import PedidoDetailsPage from './pages/PedidoDetailsPage';
-import FaturasPage from './pages/FaturasPage';
-import GestaoContasPage from './pages/GestaoContasPage';
-import PagamentosPage from './pages/PagamentosPage';
-import ContaPage from './pages/ContaPage'; // ← não esqueça de importar!
 import Navbar from './components/Navbar';
 
+import HomePage from './pages/HomePage';
+import CondominiosPage from './pages/CondominiosPage';
+import PedidosPage from './pages/PedidosPage';
+import FaturasPage from './pages/FaturasPage';
+import PagamentosPage from './pages/PagamentosPage';
+import ContaPage from './pages/ContaPage';
+import GestaoContasPage from './pages/GestaoContasPage';
+import Login from './pages/login';
+
 function AppContent() {
-  const { user } = useAuth();
-  if (user === undefined) return null;
+  const { user, perfil, isLoading, isAuthenticated } = useAuth();
 
-  return (
-    <>
-      {user && <Navbar />}
+  // 1) Ainda a verificar sessão/perfil → não renderizamos nada
+  if (isLoading) {
+    return null;
+  }
 
+  // 2) Se não há utilizador autenticado (user === null) → mostramos apenas rota /login
+  if (!isAuthenticated) {
+    return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
+  // 3) Se o utilizador está autenticado mas o perfil ainda não veio da API → aguardamos
+  if (user && perfil === null) {
+    return null;
+  }
+
+  // 4) A partir daqui: user !== null e perfil !== null → já podemos ler perfil.role
+  return (
+    <>
+      <Navbar />
+
+      <Routes>
+        {/* Home ("/") → qualquer utilizador autenticado */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* Condominios → apenas admin ou senhorio */}
         <Route
           path="/condominios"
           element={
-            <PrivateRoute>
+            perfil.role === 'admin' || perfil.role === 'senhorio' ? (
               <CondominiosPage />
-            </PrivateRoute>
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
 
-        <Route
-          path="/pedidos"
-          element={
-            <PrivateRoute>
-              <PedidosPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Pedidos → qualquer utilizador autenticado (inquilino, senhorio ou admin) */}
+        <Route path="/pedidos" element={<PedidosPage />} />
 
-        <Route
-          path="/pedidos/:id"
-          element={
-            <PrivateRoute>
-              <PedidoDetailsPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Faturas → qualquer utilizador autenticado */}
+        <Route path="/faturas" element={<FaturasPage />} />
 
-        <Route
-          path="/faturas"
-          element={
-            <PrivateRoute>
-              <FaturasPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Pagamentos → qualquer utilizador autenticado */}
+        <Route path="/pagamentos" element={<PagamentosPage />} />
 
-        <Route
-          path="/conta"
-          element={
-            <PrivateRoute>
-              <ContaPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Minha Conta → qualquer utilizador autenticado */}
+        <Route path="/conta" element={<ContaPage />} />
 
+        {/* Gestão de Contas → apenas admin */}
         <Route
-          path="/contas"
+          path="/gestao-contas"
           element={
-            <PrivateRoute>
+            perfil.role === 'admin' ? (
               <GestaoContasPage />
-            </PrivateRoute>
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
 
-        <Route
-          path="/pagamentos"
-          element={
-            <PrivateRoute>
-              <PagamentosPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Se formos a /login estando já autenticado, redireciona para / */}
+        <Route path="/login" element={<Navigate to="/" replace />} />
 
-        <Route path="*" element={<Login />} />
+        {/* Qualquer outra rota inválida → redireciona para "/" */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
