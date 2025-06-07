@@ -36,7 +36,7 @@ const PerfilCardAdmin = ({ perfil, onEdit, onEditInfo, onDelete, onToggleValidar
             className="btn btn-outline-primary btn-sm"
             onClick={() => onEdit(perfil)}
           >
-            Editar
+            Role
           </button>
 
           <button

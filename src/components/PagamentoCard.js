@@ -1,131 +1,103 @@
 // src/components/PagamentoCard.js
 
-import { useState } from 'react';
-import PagamentoForm from './PagamentoForm';
+import React from 'react';
 
 /**
- * Exibe um pagamento em formato de card, com botões para editar e excluir.
+ * Exibe um pagamento em formato de card, com botões para marcar pago e excluir.
  *
  * Props:
- *  - pagamento: {
- *      id,
- *      user_id,
- *      condominio_id,
- *      descricao,
- *      valor,
- *      data_pg,
- *      metodo,
- *      tipo,
- *      estado,
- *      comprovante_url,
- *      created_at
- *    }
- *  - onEdit(id, updates) → função chamada ao salvar edição
- *  - onDelete(id)      → função chamada ao excluir
- *  - perfil            → objeto { role, user_id, … }
+ *   pagamento: {
+ *     id,
+ *     user_id,
+ *     descricao,
+ *     valor,
+ *     data_pg,
+ *     metodo,
+ *     tipo,
+ *     estado,
+ *     comprovante_url,
+ *     created_at
+ *   }
+ *   perfil       → { role, user_id, … }
+ *   inquilinos   → [ { id, user_id, nome, email, … }, … ]
+ *   onEdit(id, updates)
+ *   onDelete(id)
  */
-export default function PagamentoCard({ pagamento, onEdit, onDelete, perfil }) {
-  const [editMode, setEditMode] = useState(false);
+export default function PagamentoCard({
+  pagamento,
+  perfil,
+  inquilinos,
+  onEdit,
+  onDelete,
+}) {
+  const isManager = perfil.role === 'admin' || perfil.role === 'senhorio';
+  const isOwner = perfil.role === 'inquilino' && pagamento.user_id === perfil.user_id;
 
-  const isInquilino = perfil.role === 'inquilino';
-  const isSenhorio = perfil.role === 'senhorio';
-  const isAdmin    = perfil.role === 'admin';
+  // se manager, exibe o perfil do inquilino dono desse pagamento
+  const cliente = inquilinos?.find(i => i.user_id === pagamento.user_id);
 
-  // Permite editar se: admin OR (senhorio e pertence ao seu condomínio) OR (inquilino e é próprio user_id)
-  const podeEditar =
-    isAdmin ||
-    (isSenhorio && pagamento.condominio_id /* RLS já garante que pertence */) ||
-    (isInquilino && perfil.user_id === pagamento.user_id);
-
-  // Permite excluir se: admin OR (senhorio e pertence) OR (inquilino e próprio)
-  const podeExcluir = podeEditar;
-
-  const handleSave = (updates) => {
-    onEdit(pagamento.id, updates);
-    setEditMode(false);
+  const handleMarkPaid = () => {
+    onEdit(pagamento.id, { estado: 'pago' });
   };
 
   return (
-    <div className="card mb-3">
+    <div className="card mb-3 shadow-sm">
       <div className="card-body">
-        {!editMode ? (
-          <>
-            <div className="d-flex justify-content-between">
-              <div>
-                <h5 className="card-title">Pagamento #{pagamento.id}</h5>
-                <p className="card-text">
-                  <strong>Descrição:</strong> {pagamento.descricao}
-                </p>
-                <p className="card-text">
-                  <strong>Valor:</strong> €{pagamento.valor.toFixed(2)}
-                </p>
-                <p className="card-text">
-                  <strong>Data de Pagamento:</strong>{' '}
-                  {new Date(pagamento.data_pg).toLocaleDateString()}
-                </p>
-                {pagamento.metodo && (
-                  <p className="card-text">
-                    <strong>Método:</strong> {pagamento.metodo}
-                  </p>
-                )}
-                {pagamento.tipo && (
-                  <p className="card-text">
-                    <strong>Tipo:</strong> {pagamento.tipo}
-                  </p>
-                )}
-                {pagamento.comprovante_url && (
-                  <p className="card-text">
-                    <strong>Comprovante:</strong>{' '}
-                    <a
-                      href={pagamento.comprovante_url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Ver Comprovante
-                    </a>
-                  </p>
-                )}
-                <p className="card-text text-muted">
-                  <small>Criado em: {new Date(pagamento.created_at).toLocaleString()}</small>
-                </p>
-              </div>
+        {isManager && cliente && (
+          <h6 className="card-subtitle mb-2 text-muted">
+            Inquilino: {cliente.nome} ({cliente.email})
+          </h6>
+        )}
 
-              {(podeEditar || podeExcluir) && (
-                <div className="d-flex flex-column align-items-end gap-2">
-                  {podeEditar && (
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => setEditMode(true)}
-                    >
-                      Editar
-                    </button>
-                  )}
-                  {podeExcluir && (
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => onDelete(pagamento.id)}
-                    >
-                      Excluir
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          // Modo edição: exibe PagamentoForm com dados iniciais
-          <PagamentoForm
-            initialData={{
-              id: pagamento.id,
-              condominio_id: pagamento.condominio_id,
-              descricao: pagamento.descricao,
-              valor: pagamento.valor,
-              data_pg: pagamento.data_pg,
-              metodo: pagamento.metodo,
-              tipo: pagamento.tipo,
-            }}
-            onSubmit={handleSave}
-          />
+        <h5 className="card-title">{pagamento.descricao}</h5>
+
+        <p className="card-text">
+          <strong>Valor:</strong> €{pagamento.valor.toFixed(2)}
+        </p>
+        <p className="card-text">
+          <strong>Data:</strong> {new Date(pagamento.data_pg).toLocaleDateString()}
+        </p>
+        {pagamento.metodo && (
+          <p className="card-text">
+            <strong>Método:</strong> {pagamento.metodo}
+          </p>
+        )}
+        {pagamento.tipo && (
+          <p className="card-text">
+            <strong>Tipo:</strong> {pagamento.tipo}
+          </p>
+        )}
+        {pagamento.comprovante_url && (
+          <p className="card-text">
+            <strong>Comprovante:</strong>{' '}
+            <a href={pagamento.comprovante_url} target="_blank" rel="noreferrer">
+              Ver
+            </a>
+          </p>
+        )}
+
+        <p className="card-text text-muted">
+          <small>
+            Criado em: {new Date(pagamento.created_at).toLocaleString()}
+          </small>
+        </p>
+
+        {(isManager || isOwner) && (
+          <div className="d-flex gap-2">
+            <button
+              className="btn btn-sm btn-success"
+              onClick={handleMarkPaid}
+              disabled={pagamento.estado === 'pago'}
+            >
+              {pagamento.estado === 'pago' ? 'Pago' : 'Marcar pago'}
+            </button>
+            <button
+              className="btn btn-sm btn-outline-danger"
+              onClick={() => onDelete(pagamento.id)}
+            >
+              Excluir
+            </button>
+          </div>
         )}
       </div>
     </div>

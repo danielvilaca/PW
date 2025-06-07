@@ -1,32 +1,34 @@
-// src/api/pagamentos.js
 import { supabase } from '../services/supabaseClient';
 
 /**
  * Retorna todos os pagamentos visíveis para o user logado:
- * admin vê todos, senhorio só dos seus condomínios, inquilino apenas seus próprios.
+ *  - adminParam=true → TODOS
+ *  - adminParam=false & role='senhorio' → TODOS
+ *  - adminParam=false & role='inquilino' → só user_id = auth.uid()
  *
- * @returns {Promise<Array>}
+ * @param {{ adminParam?: boolean }} opts
  */
-export async function fetchPagamentos() {
+export async function fetchPagamentos({ adminParam = false } = {}) {
   const {
     data: { user },
+    error: authErr,
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Não autenticado');
+  if (authErr || !user) throw new Error('Não autenticado');
 
-  const { data: perfilData, error: perfilErr } = await supabase
+  const { data: perfil, error: perfilErr } = await supabase
     .from('perfis')
-    .select('*')
+    .select('role,user_id')
     .eq('user_id', user.id)
     .single();
   if (perfilErr) throw perfilErr;
-  const perfil = perfilData;
 
-  let query = supabase.from('pagamentos').select('*').order('created_at', { ascending: false });
+  let query = supabase
+    .from('pagamentos')
+    .select('*')
+    .order('data_pg', { ascending: false });
 
-  if (perfil.role === 'admin') {
-    // sem filtro extra
-  } else {
-    // inquilino: só pagamentos que ele próprio criou
+  // se for inquilino e não quiser todos, filtra só os próprios
+  if (!adminParam && perfil.role === 'inquilino') {
     query = query.eq('user_id', user.id);
   }
 
@@ -36,28 +38,44 @@ export async function fetchPagamentos() {
 }
 
 /**
- * Cria um pagamento, associando automaticamente user_id = auth.uid().
- *
- * @param {{ condominio_id: string, descricao: string, valor: number, data_pg: string, metodo: string, tipo: string }} payData
+ * Cria um pagamento:
+ *  - inquilino → attributo user_id = auth.uid()
+ *  - admin/senhorio → payData.user_id deve estar presente
  */
-export async function createPagamento({ condominio_id, descricao, valor, data_pg, metodo, tipo }) {
+export async function createPagamento(payData) {
   const {
     data: { user },
+    error: authErr,
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Não autenticado');
+  if (authErr || !user) throw new Error('Não autenticado');
+
+  const { data: perfil, error: perfilErr } = await supabase
+    .from('perfis')
+    .select('role,user_id')
+    .eq('user_id', user.id)
+    .single();
+  if (perfilErr) throw perfilErr;
+
+  // decide user_id no insert
+  const assignedUserId =
+    perfil.role === 'inquilino' ? user.id : payData.user_id;
+  if (!assignedUserId) {
+    throw new Error(
+      'Para admin/senhorio é obrigatório passar payData.user_id'
+    );
+  }
 
   const { data, error } = await supabase
     .from('pagamentos')
     .insert([
       {
-        user_id: user.id,
-        condominio_id,
-        descricao,
-        valor,
-        data_pg,
+        user_id: assignedUserId,
+        descricao: payData.descricao,
+        valor: payData.valor,
+        data_pg: payData.data_pg,
         estado: 'pendente',
-        metodo,
-        tipo,
+        metodo: payData.metodo,
+        tipo: payData.tipo || null,
       },
     ])
     .select()
@@ -67,12 +85,7 @@ export async function createPagamento({ condominio_id, descricao, valor, data_pg
   return data;
 }
 
-/**
- * Atualiza um pagamento existente (admin ou senhorio ou inquilino próprio pode atualizar, conforme RLS).
- *
- * @param {string} id
- * @param {{ condominio_id?: string, descricao?: string, valor?: number, data_pg?: string, estado?: string, metodo?: string, tipo?: string }} updates
- */
+/** Atualiza um pagamento (ex: marcar como pago) */
 export async function updatePagamento(id, updates) {
   const { data, error } = await supabase
     .from('pagamentos')
@@ -80,29 +93,27 @@ export async function updatePagamento(id, updates) {
     .eq('id', id)
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
 
-/**
- * Exclui um pagamento (admin ou proprietário ou senhorio pode, de acordo com RLS).
- *
- * @param {string} id
- */
+/** Exclui um pagamento */
 export async function deletePagamento(id) {
-  const { data, error } = await supabase.from('pagamentos').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('pagamentos')
+    .delete()
+    .eq('id', id);
   if (error) throw error;
   return data;
 }
 
-/**
- * Pega um pagamento específico pelo ID.
- *
- * @param {string} id
- */
+/** Busca um pagamento específico */
 export async function getPagamentoById(id) {
-  const { data, error } = await supabase.from('pagamentos').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('pagamentos')
+    .select('*')
+    .eq('id', id)
+    .single();
   if (error) throw error;
   return data;
 }

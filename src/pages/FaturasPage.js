@@ -1,84 +1,90 @@
 // src/pages/FaturasPage.js
-import React, { useEffect, useState, useMemo } from 'react';
-import {
-  fetchFaturas,
-  updateFatura,
-} from '../api/faturas';
-import FaturaCard from '../components/FaturaCard';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import { fetchFaturas, updateFatura } from '../api/faturas';
+import FaturaCard from '../components/FaturaCard';
 import {
   PDFDownloadLink,
-  // Não é mais necessário importar FaturasPDF aqui, a não ser que queira o extrato completo
+  Page,
+  Text,
+  View,
+  Document,
+  StyleSheet,
 } from '@react-pdf/renderer';
-import { FaturasPDF } from '../components/FaturasPDF';
+
+const styles = StyleSheet.create({
+  page: { flexDirection: 'column', backgroundColor: '#E4E4E4', padding: 20 },
+  section: { margin: 10, padding: 10, backgroundColor: '#fff', borderRadius: 5 },
+  title: { fontSize: 18, marginBottom: 10 },
+});
+
+export function FaturasPDF({ faturas }) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>Extrato de Faturas</Text>
+        {faturas.map((f) => (
+          <View key={f.id} style={styles.section}>
+            <Text>Fatura #{f.id}</Text>
+            <Text>Mês/Ano: {f.mes}/{f.ano}</Text>
+            <Text>Valor: €{f.valor.toFixed(2)}</Text>
+            <Text>Situação: {f.pago ? 'Paga' : 'Pendente'}</Text>
+          </View>
+        ))}
+      </Page>
+    </Document>
+  );
+}
 
 export default function FaturasPage() {
+  const { perfil } = useAuth();
   const [faturas, setFaturas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { perfil } = useAuth();
 
   useEffect(() => {
-    async function loadFaturas() {
+    async function load() {
       setLoading(true);
-      try {
-        const data = await fetchFaturas({ admin: perfil.role === 'admin' });
-        setFaturas(data);
-      } catch (err) {
-        console.error('Erro ao buscar faturas:', err);
-      } finally {
-        setLoading(false);
-      }
+      const adminParam = perfil.role === 'admin' || perfil.role === 'senhorio';
+      const data = await fetchFaturas({ adminParam });
+      setFaturas(data);
+      setLoading(false);
     }
-    if (perfil) loadFaturas();
+    if (perfil) load();
   }, [perfil]);
 
-  // Se você quiser manter o extrato completo no topo da página,
-  // pode deixar essa memoização aqui (caso queira disponibilizar Extrato Geral):
-  const extratoCompletoDocument = useMemo(
-    () => <FaturasPDF faturas={faturas} />,
-    [faturas]
-  );
-
   const handlePagar = async (id) => {
-    try {
-      await updateFatura(id, { pago: true });
-      setFaturas((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, pago: true } : f))
-      );
-    } catch (err) {
-      console.error('Erro ao marcar fatura como paga:', err);
-    }
+    const updated = await updateFatura(id, { pago: true });
+    setFaturas((old) => old.map((f) => (f.id === id ? updated : f)));
   };
 
-  if (loading) {
-    return <div className="text-center my-5">Carregando faturas…</div>;
-  }
+  if (loading) return <div className="text-center my-5">Carregando faturas…</div>;
 
   return (
     <div className="container my-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="fw-bold mb-0">Faturas</h1>
-
-        {/* Se quiser deixar o Extrato Geral no topo, mantenha esta parte: */}
         <PDFDownloadLink
-          document={extratoCompletoDocument}
+          document={<FaturasPDF faturas={faturas} />}
           fileName="Extrato_Completo.pdf"
           className="btn btn-outline-primary"
         >
-          {({ loading: pdfLoading }) =>
-            pdfLoading ? 'Gerando Extrato...' : 'Exportar Extrato'
-          }
+          {({ loading }) => (loading ? 'Gerando PDF...' : 'Extrato Completo')}
         </PDFDownloadLink>
       </div>
 
-      <div className="row">
-        {faturas.map((fatura) => (
-          <div key={fatura.id} className="col-12 mb-3">
-            {/* Aqui NÃO passamos mais faturasDocument, apenas onPay */}
-            <FaturaCard fatura={fatura} onPay={handlePagar} />
-          </div>
-        ))}
-      </div>
+      {faturas.length === 0 ? (
+        <p className="text-muted">Nenhuma fatura encontrada.</p>
+      ) : (
+        faturas.map((f) => (
+          <FaturaCard
+            key={f.id}
+            fatura={f}
+            onPay={handlePagar}
+            // PDF de fatura individual
+            faturasDocument={<FaturasPDF faturas={[f]} />}
+          />
+        ))
+      )}
     </div>
   );
 }

@@ -1,5 +1,3 @@
-// src/pages/PagamentosPage.js
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -8,18 +6,30 @@ import {
   updatePagamento,
   deletePagamento,
 } from '../api/pagamentos';
+import { fetchTodosPerfis } from '../api/perfis';
 import PagamentoForm from '../components/PagamentoForm';
 import PagamentoCard from '../components/PagamentoCard';
 
 export default function PagamentosPage() {
   const { perfil } = useAuth();
   const [pagamentos, setPagamentos] = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [inquilinos, setInquilinos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const carregarPagamentos = async () => {
+  const isManager = perfil?.role === 'admin' || perfil?.role === 'senhorio';
+
+  // 1. Carregar lista de inquilinos (só para admin/senhorio)
+  const loadInquilinos = async () => {
+    if (!isManager) return;
+    const todos = await fetchTodosPerfis();
+    setInquilinos(todos.filter(p => p.role === 'inquilino'));
+  };
+
+  // 2. Carregar pagamentos
+  const loadPagamentos = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await fetchPagamentos();
+      const data = await fetchPagamentos({ adminParam: isManager });
       setPagamentos(data);
     } catch (err) {
       console.error('Erro ao buscar pagamentos:', err);
@@ -30,13 +40,16 @@ export default function PagamentosPage() {
   };
 
   useEffect(() => {
-    carregarPagamentos();
-  }, []);
+    if (!perfil) return;
+    loadInquilinos();
+    loadPagamentos();
+  }, [perfil]);
 
-  const handleCreate = async (payData) => {
+  // 3. Handlers
+  const handleCreate = async payData => {
     try {
       await createPagamento(payData);
-      carregarPagamentos();
+      await loadPagamentos();
       alert('Pagamento criado com sucesso!');
     } catch (err) {
       console.error('Erro ao criar pagamento:', err);
@@ -46,9 +59,9 @@ export default function PagamentosPage() {
 
   const handleEdit = async (id, updates) => {
     try {
-      await updatePagamento(id, updates);
-      setPagamentos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      const updated = await updatePagamento(id, updates);
+      setPagamentos(prev =>
+        prev.map(p => (p.id === id ? updated : p))
       );
     } catch (err) {
       console.error('Erro ao editar pagamento:', err);
@@ -56,11 +69,11 @@ export default function PagamentosPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Deseja realmente excluir este pagamento?')) return;
+  const handleDelete = async id => {
+    if (!window.confirm('Deseja mesmo excluir esse pagamento?')) return;
     try {
       await deletePagamento(id);
-      setPagamentos((prev) => prev.filter((p) => p.id !== id));
+      setPagamentos(prev => prev.filter(p => p.id !== id));
     } catch (err) {
       console.error('Erro ao excluir pagamento:', err);
       alert('Falha ao excluir pagamento.');
@@ -74,19 +87,24 @@ export default function PagamentosPage() {
       <h2 className="mb-4">Pagamentos</h2>
 
       <div className="mb-4">
-        <PagamentoForm onSubmit={handleCreate} />
+        <PagamentoForm
+          onSubmit={handleCreate}
+          perfil={perfil}
+          inquilinos={inquilinos}
+        />
       </div>
 
       {pagamentos.length === 0 ? (
         <p className="text-muted">Nenhum pagamento encontrado.</p>
       ) : (
-        pagamentos.map((p) => (
+        pagamentos.map(p => (
           <PagamentoCard
             key={p.id}
             pagamento={p}
+            perfil={perfil}
+            inquilinos={inquilinos}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            perfil={perfil}
           />
         ))
       )}

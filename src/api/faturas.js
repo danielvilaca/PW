@@ -3,42 +3,36 @@ import { supabase } from '../services/supabaseClient';
 
 /**
  * Busca todas as faturas para o perfil atual:
- * - admin vê todas,
- * - “inquilino” só vê as faturas cujo user_id = auth.uid(),
- * - “senhorio” (se aplicável) só vê faturas de inquilinos de seus condomínios.
+ * - admin e senhorio veem todas,
+ * - inquilino só vê as próprias (user_id = auth.uid()).
  *
- * @param {{ admin?: boolean }} opts → se admin=true, ignora filtro de user_id
+ * @param {{ adminParam?: boolean }} opts → se adminParam=true, ignora filtro de user_id
  */
-export async function fetchFaturas({ admin = false } = {}) {
+export async function fetchFaturas({ adminParam = false } = {}) {
+  // 1. Pega o user autenticado
   const {
     data: { user },
+    error: authErr
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Não autenticado');
+  if (authErr || !user) throw new Error('Não autenticado');
 
-  // Pega perfil para identificar role
-  const { data: perfilData, error: perfilErr } = await supabase
+  // 2. Pega o perfil para ler o role
+  const { data: perfil, error: perfilErr } = await supabase
     .from('perfis')
-    .select('*')
+    .select('role')
     .eq('user_id', user.id)
     .single();
   if (perfilErr) throw perfilErr;
-  const perfil = perfilData;
 
-  let query = supabase.from('faturas').select('*').order('ano', { ascending: false }).order('mes', { ascending: false });
+  // 3. Monta a query base
+  let query = supabase
+    .from('faturas')
+    .select('*')
+    .order('ano', { ascending: false })
+    .order('mes', { ascending: false });
 
-  if (perfil.role === 'admin') {
-    // sem filtro
-  } else if (perfil.role === 'senhorio') {
-    // ex.: supor que “faturas” tem coluna condominio_id:
-    query = query.in(
-      'condominio_id',
-      supabase
-        .from('senhorio_condominio')
-        .select('condominio_id')
-        .eq('senhorio_id', perfil.user_id)
-    );
-  } else {
-    // inquilino: só faturas associadas ao próprio user_id
+  // 4. Se não for admin nem senhorio e não passou override, filtra pelo próprio
+  if (!adminParam && perfil.role === 'inquilino') {
     query = query.eq('user_id', user.id);
   }
 
@@ -48,30 +42,26 @@ export async function fetchFaturas({ admin = false } = {}) {
 }
 
 /**
- * Cria nova fatura para ano/mes especificados, associando user_id automáticamente.
- * Também aceita um URL de PDF já gerado (pdf_url).
- *
- * @param {{ user_id?: string, condominio_id?: string, ano: number, mes: number, valor: number, pago?: boolean, pdf_url?: string }} faturaData
+ * Cria nova fatura para ano/mes especificados, associando user_id = auth.uid()
  */
-export async function createFatura({ ano, mes, valor, condominio_id, pdf_url = null }) {
+export async function createFatura({ ano, mes, valor, condominio_id = null, pdf_url = null }) {
   const {
     data: { user },
+    error: authErr
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('Não autenticado');
+  if (authErr || !user) throw new Error('Não autenticado');
 
   const { data, error } = await supabase
     .from('faturas')
-    .insert([
-      {
-        user_id: user.id,
-        condominio_id,
-        ano,
-        mes,
-        valor,
-        pago: false,
-        pdf_url,
-      },
-    ])
+    .insert([{
+      user_id: user.id,
+      condominio_id,
+      ano,
+      mes,
+      valor,
+      pago: false,
+      pdf_url,
+    }])
     .select()
     .single();
 
@@ -80,9 +70,7 @@ export async function createFatura({ ano, mes, valor, condominio_id, pdf_url = n
 }
 
 /**
- * Marca a fatura como paga (pago = true) e retorna o registo atualizado.
- *
- * @param {string} id
+ * Atualiza fatura (ex: marcar como paga)
  */
 export async function updateFatura(id, updates) {
   const { data, error } = await supabase
@@ -91,29 +79,31 @@ export async function updateFatura(id, updates) {
     .eq('id', id)
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
 
 /**
- * Deleta a fatura (apenas admin ou inquilino próprio até certo ponto, conforme RLS).
- *
- * @param {string} id
+ * Deleta fatura
  */
 export async function deleteFatura(id) {
-  const { data, error } = await supabase.from('faturas').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('faturas')
+    .delete()
+    .eq('id', id);
   if (error) throw error;
   return data;
 }
 
 /**
- * Pega uma fatura específica por ID (útil para visualizar ou gerar PDF completo).
- *
- * @param {string} id
+ * Busca uma fatura específica
  */
 export async function getFaturaById(id) {
-  const { data, error } = await supabase.from('faturas').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('faturas')
+    .select('*')
+    .eq('id', id)
+    .single();
   if (error) throw error;
   return data;
 }
