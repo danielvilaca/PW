@@ -1,5 +1,3 @@
-// src/services/weatherService.js
-
 export async function getCurrentWeather(latitude, longitude) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
 

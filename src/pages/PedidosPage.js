@@ -21,12 +21,10 @@ export default function PedidosPage() {
   const loadPedidos = async () => {
     setLoading(true);
     try {
-      const data = await fetchPedidos(); // já traz todos ou apenas do próprio, conforme a role
+      const data = await fetchPedidos();
       if (perfil.role === 'admin' || perfil.role === 'senhorio') {
-        // Admin e Senhorio veem todos, sem filtro de validade
         setPedidos(data);
       } else {
-        // Inquilino vê apenas os não-vencidos
         const hoje = new Date();
         const validos = data.filter(
           (p) => new Date(p.validade_orcamentos) >= hoje
@@ -42,13 +40,11 @@ export default function PedidosPage() {
   };
 
   useEffect(() => {
-    // sempre que a página montar (ou perfil mudar), recarrega
     if (perfil) {
       loadPedidos();
     }
   }, [perfil]);
 
-  // 2. Callback para criar um novo pedido (vindo do Modal)
   const handleCreate = async (novoPedido) => {
     try {
       await criarPedido({ ...novoPedido, estado: 'Aberto' });
@@ -60,7 +56,6 @@ export default function PedidosPage() {
     }
   };
 
-  // 3. Callback para editar (usa prompt por enquanto)
   const handleEdit = async (pedido) => {
     const novoTitulo = prompt('Título do pedido', pedido.titulo);
     if (!novoTitulo) return;
@@ -73,7 +68,6 @@ export default function PedidosPage() {
     }
   };
 
-  // 4. Callback para deletar
   const handleDelete = async (id) => {
     if (!window.confirm('Deseja realmente excluir este pedido?')) return;
     try {

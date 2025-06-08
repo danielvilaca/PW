@@ -1,5 +1,3 @@
-// src/components/FaturasPDF.js
-
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 
@@ -33,7 +31,6 @@ export function FaturasPDF({ faturas }) {
             <Text>Valor: €{f.valor.toFixed(2)}</Text>
             <Text>Status: {f.pago ? 'Pago' : 'Pendente'}</Text>
             <Text>Data de emissão: {new Date(f.created_at).toLocaleDateString()}</Text>
-            {/* Adicione aqui outros campos que queira exibir */}
           </View>
         ))}
       </Page>

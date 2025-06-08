@@ -1,11 +1,10 @@
-// src/components/PedidoFormModal.js
 import React, { useState } from 'react';
 
 /**
  * Modal para criar um novo pedido:
  *
  * Props:
- *  - visible: boolean → mostrar ou não
+ *  - visible: boolean - mostrar ou não
  *  - onClose: () => void
  *  - onCreate: ({ titulo, descricao, validade_orcamentos }) => void
  */

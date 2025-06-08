@@ -1,10 +1,9 @@
-// src/api/orcamentos.js
 import { supabase } from '../services/supabaseClient';
 
 /**
  * Recupera todos os orçamentos de um pedido específico.
- * @param {string} pedidoId → o PK de “pedidos.id”
- * @returns {Promise<Array>} lista de orçamentos
+ * @param {string} pedidoId - PK de “pedidos.id”
+ * @returns {Promise<Array>}
  */
 export async function fetchOrcamentos(pedidoId) {
   const { data, error } = await supabase
@@ -18,7 +17,7 @@ export async function fetchOrcamentos(pedidoId) {
 
 /**
  * Cria um novo orçamento associado a um pedido (quem submete é o inquilino).
- * Usamos “perfil.id” como FK em “orcamentos.user_id” (semelhante aos pedidos).
+ * Usamos “perfil.id” como FK em “orcamentos.user_id”
  * @param {{
  *   pedido_id: string,
  *   fornecedor: string,
@@ -26,14 +25,13 @@ export async function fetchOrcamentos(pedidoId) {
  *   valor: number,
  *   anexo_url: string (opcional)
  * }} orcData
- * @returns {Promise<Object>} → o registro inserido
+ * @returns {Promise<Object>}
  */
 export async function createOrcamento({ pedido_id, fornecedor, contacto, valor, anexo_url }) {
-  // 1) Obter user + perfil (para user_id = perfil.id)
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  // 2) Buscar perfil
+
   const { data: perfilData, error: perfilErr } = await supabase
     .from('perfis')
     .select('*')
@@ -42,7 +40,7 @@ export async function createOrcamento({ pedido_id, fornecedor, contacto, valor, 
   if (perfilErr) throw perfilErr;
   const perfil = perfilData;
 
-  // 3) Inserir no “orcamentos”
+
   const { data, error } = await supabase
     .from('orcamentos')
     .insert([
@@ -64,9 +62,9 @@ export async function createOrcamento({ pedido_id, fornecedor, contacto, valor, 
 
 /**
  * Atualiza um orçamento existente (por id, PK de “orcamentos.id”).
- * @param {string} id → PK de “orcamentos.id”
+ * @param {string} id
  * @param {{ fornecedor?: string, contacto?: string, valor?: number, anexo_url?: string }} updates
- * @returns {Promise<Object>} → registro atualizado
+ * @returns {Promise<Object>}
  */
 export async function updateOrcamento(id, updates) {
   const { data, error } = await supabase
@@ -81,7 +79,7 @@ export async function updateOrcamento(id, updates) {
 
 /**
  * Elimina um orçamento (PK).
- * @param {string} id → PK de “orcamentos.id”
+ * @param {string} id
  */
 export async function deleteOrcamento(id) {
   const { data, error } = await supabase
@@ -93,7 +91,7 @@ export async function deleteOrcamento(id) {
 }
 
 /**
- * Busca somente um orçamento pelo seu PK.
+ * Procura somente um orçamento pelo seu PK.
  * @param {string} id → PK de “orcamentos.id”
  * @returns {Promise<Object>}
  */

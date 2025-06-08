@@ -22,7 +22,7 @@ export default function GestaoContasPage() {
 
   const criar = async (e) => {
     e.preventDefault();
-    await fetch('/auth/adminInvite'); // substituir pela lógica real
+    await fetch('/auth/adminInvite'); // substituir
     setEmail('');
     carregar();
   };

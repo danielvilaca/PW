@@ -1,11 +1,9 @@
-// src/components/PedidoCard.js
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import OrcamentoCard from './OrcamentoCard';
 import { fetchOrcamentos } from '../api/orcamentos';
-import PedidoFormModal from './PedidoFormModal';   // Caso use modal de editar pedido
-import OrcamentoFormModal from './OrcamentoFormModal'; // O modal que criámos acima
+import PedidoFormModal from './PedidoFormModal';
+import OrcamentoFormModal from './OrcamentoFormModal';
 
 const PedidoCard = ({ pedido, onEdit, onDelete }) => {
   const { perfil } = useAuth();
@@ -15,10 +13,8 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
   const [orcs, setOrcs] = useState([]);
   const [loadingOrcs, setLoadingOrcs] = useState(false);
 
-  // Estado para controlar o modal de “Novo Orçamento”
   const [showOrcModal, setShowOrcModal] = useState(false);
 
-  // 1) Ao expandir, carregar orçamentos
   useEffect(() => {
     if (!expand) return;
     (async () => {
@@ -34,7 +30,7 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
     })();
   }, [expand, pedido.id]);
 
-  // Callback para recarregar a lista de orçamentos
+  // Callback para a lista de orçamentos
   const refetchOrcs = async () => {
     try {
       setLoadingOrcs(true);
@@ -122,7 +118,7 @@ const PedidoCard = ({ pedido, onEdit, onDelete }) => {
           </button>
           <button
             className="btn btn-outline-primary btn-sm"
-            onClick={() => {/* abre modal de OrcamentoForm */}}
+            onClick={() => {/* modal de OrcamentoForm */}}
           >
             Adicionar Orçamento
           </button>

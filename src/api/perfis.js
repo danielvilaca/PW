@@ -1,9 +1,7 @@
-// src/api/perfis.js
-
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Busca um perfil na tabela `perfis` pelo user_id.
+ * Procura um perfil na tabela "perfis" pelo user_id.
  * @param {string} userId
  * @returns {Promise<Object|null>}
  */
@@ -16,13 +14,12 @@ export const fetchPerfil = async (userId) => {
     .eq('user_id', userId)
     .single();
 
-  // Se não encontrou (code PGRST116), retorna null; caso contrário, lança erro
   if (error && error.code !== 'PGRST116') throw error;
-  return data; // retorna perfil ou null se não existir
+  return data;
 };
 
 /**
- * Cria um novo perfil na tabela `perfis`.
+ * Cria um novo perfil na tabela "perfis".
  * @param {{ user_id: string|null, nome: string, email?: string, password?: string, role: string, foto_url?: string|null, validated?: boolean }} perfilData
  * @returns {Promise<Object>}
  */
@@ -89,7 +86,7 @@ export const updatePerfil = async (userId, updates) => {
  * Faz upload de um avatar para o bucket "avatars" e atualiza o campo foto_url no perfil.
  * @param {File} file
  * @param {string} userId
- * @returns {Promise<string>} URL pública da imagem
+ * @returns {Promise<string>}
  */
 export const uploadAvatar = async (file, userId) => {
   if (!file) throw new Error('Arquivo de avatar não fornecido');
@@ -98,7 +95,7 @@ export const uploadAvatar = async (file, userId) => {
   const bucket = 'avatars';
   const filePath = `${userId}/${Date.now()}_${file.name}`;
 
-  // Faz upload do arquivo (upsert = sobregrava se existir)
+
   const { error: upErr } = await supabase
     .storage
     .from(bucket)
@@ -106,11 +103,10 @@ export const uploadAvatar = async (file, userId) => {
 
   if (upErr) throw upErr;
 
-  // Obtem a URL pública
+
   const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
   const fotoUrl = data.publicUrl;
 
-  // Atualiza o campo foto_url no perfil
   await updatePerfil(userId, { foto_url: fotoUrl });
 
   return fotoUrl;

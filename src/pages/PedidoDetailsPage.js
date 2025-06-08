@@ -25,7 +25,7 @@ export default function PedidoDetailsPage() {
         const dados = await getPedidoById(id); // você precisa implementar esta API
         setPedido(dados);
       } catch (err) {
-        console.error('Erro ao buscar pedido:', err);
+        console.error('Erro ao procurar pedido:', err);
         alert('Falha ao carregar pedido.');
         return navigate('/pedidos');
       } finally {
@@ -42,7 +42,7 @@ export default function PedidoDetailsPage() {
         const lista = await fetchOrcamentos(pedido.id);
         setOrcs(lista);
       } catch (err) {
-        console.error('Erro ao buscar orçamentos:', err);
+        console.error('Erro ao procurar orçamentos:', err);
       } finally {
         setLoadingOrcs(false);
       }

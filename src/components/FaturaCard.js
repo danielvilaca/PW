@@ -1,12 +1,10 @@
-// src/components/FaturaCard.js
-
 import React, { useMemo } from 'react';
 import { isPast } from 'date-fns';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { FaturasPDF } from './FaturasPDF'; // Atenção: este componente aceita um array de faturas
 
 /**
- * Exibe um cartão de fatura:
+ * Apresenta um cartão de fatura:
  *  - Se a fatura estiver paga, mostra um botão para baixar o PDF dessa própria fatura.
  *  - Caso contrário, mostra um botão “Pagar”.
  *
@@ -23,11 +21,9 @@ import { FaturasPDF } from './FaturasPDF'; // Atenção: este componente aceita 
  *  - onPay(id): função para marcar a fatura como paga
  */
 export default function FaturaCard({ fatura, onPay }) {
-  // Calcula se está em atraso (opcional):
   const vencimento = new Date(fatura.ano, fatura.mes - 1, 1);
   const emAtraso = !fatura.pago && isPast(vencimento);
 
-  // Memoiza o documento PDF **desta única fatura**
   const singleDocument = useMemo(
     () => <FaturasPDF faturas={[fatura]} />,
     [fatura]
@@ -57,7 +53,7 @@ export default function FaturaCard({ fatura, onPay }) {
           className="btn btn-primary px-3 py-1"
         >
           {({ loading: pdfLoading }) =>
-            pdfLoading ? 'Gerando PDF...' : 'Exportar PDF'
+            pdfLoading ? 'A Gerar PDF...' : 'Exportar PDF'
           }
         </PDFDownloadLink>
       ) : (

@@ -1,4 +1,3 @@
-// src/components/Navbar.js
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -113,7 +112,7 @@ export default function Navbar() {
                 height="32"
               />
 
-              {/* Mostrar nome do utilizador (ou email, se preferir) */}
+              {/* Mostrar nome do utilizador (ou email) */}
               <span className="me-3">{perfil.nome || perfil.email}</span>
 
               {/* Botão de Logout */}

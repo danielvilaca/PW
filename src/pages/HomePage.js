@@ -1,4 +1,3 @@
-// src/pages/HomePage.js
 import React from 'react';
 
 export default function HomePage() {
@@ -17,7 +16,7 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Breve explicação / call to action */}
+      {/* Acessos / call to action */}
       <div className="mt-4">
         <p className="lead">
           Use o Navbar acima para navegar pela aplicação. Conforme o seu role (admin, senhorio ou inquilino), você verá diferentes funcionalidades:

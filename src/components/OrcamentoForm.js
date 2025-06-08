@@ -1,5 +1,3 @@
-// src/components/OrcamentoForm.js
-
 import React, { useState } from 'react';
 import { createOrcamento } from '../api/orcamentos';
 import { supabase } from '../services/supabaseClient';
@@ -26,7 +24,6 @@ export default function OrcamentoForm({ pedidoId, onFinish }) {
 
     let anexo_url = null;
 
-    // Se o usuário selecionou um arquivo, envia para Storage
     if (anexoFile) {
       setUploading(true);
       const path = `${pedidoId}/${Date.now()}_${anexoFile.name}`;
@@ -50,7 +47,6 @@ export default function OrcamentoForm({ pedidoId, onFinish }) {
       setUploading(false);
     }
 
-    // Cria o orçamento no Supabase
     try {
       await createOrcamento({
         pedido_id: pedidoId,

@@ -8,7 +8,7 @@ const NovoPedidoPage = () => {
 
   const carregarPedidos = async () => {
     try {
-      const data = await fetchPedidos(); // futuramente: só do próprio user
+      const data = await fetchPedidos();
       setPedidos(data);
     } catch (err) {
       console.error('Erro ao carregar pedidos:', err.message);
