@@ -12,7 +12,7 @@ export default function Navbar() {
 
         {/* Marca / Home */}
         <Link className="navbar-brand fw-bold" to="/">
-          Gestão Condomínios
+          SmartCondo
         </Link>
 
         <button
