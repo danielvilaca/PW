@@ -11,7 +11,7 @@ export default function PagamentoForm({ onSubmit, perfil, inquilinos }) {
   const [metodo, setMetodo] = useState('');
   const [tipo, setTipo] = useState('');
 
-  // quando inquilinos mudam (após carregar), escolhe primeiro
+
   useEffect(() => {
     if (isManager && inquilinos.length) {
       setUserId(inquilinos[0].user_id);

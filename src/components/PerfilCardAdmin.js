@@ -9,7 +9,7 @@ const PerfilCardAdmin = ({ perfil, onEdit, onEditInfo, onDelete, onToggleValidar
   return (
     <div className="card shadow-sm mb-3">
       <div className="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
-        {/* ─────────────── info principal ─────────────── */}
+        {/* info principal */}
         <div>
           <h5 className="card-title mb-1">
             {nome || <span className="text-muted">(sem nome)</span>}
@@ -21,7 +21,7 @@ const PerfilCardAdmin = ({ perfil, onEdit, onEditInfo, onDelete, onToggleValidar
           <span className={`badge ${badgeColor}`}>{badgeText}</span>
         </div>
 
-        {/* ─────────────── botões ─────────────── */}
+        {/* botões */}
         <div className="d-flex flex-column flex-md-row gap-2">
           <button
             type="button"

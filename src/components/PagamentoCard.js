@@ -1,5 +1,3 @@
-// src/components/PagamentoCard.js
-
 import React from 'react';
 
 /**
@@ -18,8 +16,8 @@ import React from 'react';
  *     comprovante_url,
  *     created_at
  *   }
- *   perfil       → { role, user_id, … }
- *   inquilinos   → [ { id, user_id, nome, email, … }, … ]
+ *   perfil - { role, user_id, … }
+ *   inquilinos - [ { id, user_id, nome, email, … }, … ]
  *   onEdit(id, updates)
  *   onDelete(id)
  */
@@ -33,7 +31,6 @@ export default function PagamentoCard({
   const isManager = perfil.role === 'admin' || perfil.role === 'senhorio';
   const isOwner = perfil.role === 'inquilino' && pagamento.user_id === perfil.user_id;
 
-  // se manager, exibe o perfil do inquilino dono desse pagamento
   const cliente = inquilinos?.find(i => i.user_id === pagamento.user_id);
 
   const handleMarkPaid = () => {

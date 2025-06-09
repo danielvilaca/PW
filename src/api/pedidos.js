@@ -1,4 +1,3 @@
-// src/api/pedidos.js
 import { supabase } from '../services/supabaseClient';
 
 /**
@@ -9,11 +8,10 @@ import { supabase } from '../services/supabaseClient';
  * @returns {Promise<Array>} lista de pedidos
  */
 export async function fetchPedidos() {
-  // 1) Obter sessão e user
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  // 2) Buscar o perfil (para sabermos perfil.id e perfil.role)
+
   const { data: perfilData, error: perfilErr } = await supabase
     .from('perfis')
     .select('*')
@@ -22,27 +20,22 @@ export async function fetchPedidos() {
   if (perfilErr) throw perfilErr;
   const perfil = perfilData;
 
-  // 3) Montar query base (seleciona todos os campos de “pedidos”)
+
   let query = supabase
     .from('pedidos')
     .select('*')
     .order('created_at', { ascending: false });
 
-  // 4) Se não for admin, aplicar filtro
+
   if (perfil.role === 'admin') {
-    // Admin: sem filtro, vê todos
+
   } else if (perfil.role === 'senhorio') {
-    // Senhorio: neste exemplo, não existe condominio_id relacionamento,
-    // então considerar que o senhorio vê todos também.
-    // Caso queira filtrar por condomínio, teria de existir uma tabela “senhorio_condominio”.
-    // Por enquanto, deixa sem filtro também.
+
   } else {
-    // Inquilino: só vê *seus* próprios pedidos
-    // OBS.: note que em “pedidos.user_id” agora guardamos PERFIL.ID (e não user.id).
+
     query = query.eq('user_id', perfil.id);
   }
 
-  // 5) Executar
   const { data, error } = await query;
   if (error) throw error;
   return data;
@@ -121,7 +114,7 @@ export async function deletePedido(id) {
 }
 
 /**
- * Busca e devolve um único pedido pelo seu “id” (PK)
+ * Procura e devolve um único pedido pelo seu “id” (PK)
  *
  * @param {string} id → PK de “pedidos.id”
  */

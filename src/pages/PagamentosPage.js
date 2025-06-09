@@ -32,7 +32,7 @@ export default function PagamentosPage() {
       const data = await fetchPagamentos({ adminParam: isManager });
       setPagamentos(data);
     } catch (err) {
-      console.error('Erro ao buscar pagamentos:', err);
+      console.error('Erro ao procurar pagamentos:', err);
       alert('Falha ao carregar pagamentos.');
     } finally {
       setLoading(false);

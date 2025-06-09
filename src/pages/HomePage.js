@@ -1,4 +1,3 @@
-// src/pages/HomePage.js
 import React from 'react';
 
 export default function HomePage() {
@@ -17,17 +16,41 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Breve explicação / call to action */}
+      {/* Acessos / call to action */}
       <div className="mt-4">
         <p className="lead">
-          Use o menu acima para navegar pela aplicação. Conforme o seu role (admin, senhorio ou inquilino), você verá diferentes funcionalidades:
+          Use o Navbar acima para navegar pela aplicação. Conforme o seu role (admin, senhorio ou inquilino), você verá diferentes funcionalidades:
         </p>
         <ul>
           <li><strong>Admin:</strong> acessa tudo, inclusive Gestão de Contas.</li>
-          <li><strong>Senhorio:</strong> acessa Condominios, Pedidos, Faturas, Pagamentos e Gere Orçamentos (além de sua Conta).</li>
-          <li><strong>Inquilino:</strong> acessa Pedidos, Faturas, Pagamentos e adiciona sugestões de Orçamentos (além de sua Conta).</li>
+          <li><strong>Senhorio:</strong> acessa Condominios, Pedidos, Faturas, Pagamentos e Gere Orçamentos (além da sua Conta).</li>
+          <li><strong>Inquilino:</strong> acessa Pedidos, Faturas, Pagamentos e adiciona sugestões de Orçamentos (além da sua Conta).</li>
         </ul>
       </div>
+
+      {/* Contexto */}
+      <div className="mt-4">
+        <p className="lead">
+          Contexto relativo às funcionalidades disponíveis:
+        </p>
+        <ul>
+          <li><strong>Condominios:</strong> Gestao de Condominios com Condominios correspodentes do Senhorio com API de Meteorologia e
+          Contagem de quartos alugados/ativo. (Acesso: Admin | Senhorio)</li>
+          <li><strong>Pedidos:</strong> Visualização de Pedidos de reparação ao Senhorio, para eventual submissão/escolha de um
+          respetivo orçamento. (Acesso: Admin | Senhorio | Inquilino)</li>
+          <li><strong>Faturas: </strong> Visualização das Faturas atribuidas à respetiva conta. (Acesso: Admin | Senhorio | Inquilino)</li>
+          <li><strong>Pagamentos:</strong> Visualização de Pagamentos existentes (Por pagar / Pagos) e Criação de pagamento
+          atribuindo o mesmo a um respetivo inquilino (Acesso: Admin | Senhorio | Inquilino - Apenas pagamentos associados).</li>
+          <li><strong>Orçamentos:</strong>Visualização dos orçamentos dentro dos containers de pedidos (visto que para existir
+          um orçamento será necessário existir um pedido de reparação), CRUD e escolha final pelo Senhorio (data de validade de 30 dias ou
+          data especifica) (Acesso: Admin | Senhorio | Inquilino)</li>
+          <li><strong>Minha conta:</strong> Visualização da conta atualmente logada, com alteração do ícone, nome e email associado.
+          (Acesso: Admin | Senhorio | Inquilino) </li>
+          <li><strong>Gestao de Contas:</strong> Visualização de todas as contas, Válidas e Não Válidas, com CRUD e detalhes da mesma.
+          (Acesso: Admin) </li>
+        </ul>
+      </div>
+
     </div>
   );
 }

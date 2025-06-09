@@ -1,22 +1,18 @@
-// src/api/faturas.js
 import { supabase } from '../services/supabaseClient';
 
 /**
- * Busca todas as faturas para o perfil atual:
- * - admin e senhorio veem todas,
- * - inquilino só vê as próprias (user_id = auth.uid()).
+ * Procura todas as faturas para o perfil atual
  *
- * @param {{ adminParam?: boolean }} opts → se adminParam=true, ignora filtro de user_id
+ * @param {{ adminParam?: boolean }} opts
  */
 export async function fetchFaturas({ adminParam = false } = {}) {
-  // 1. Pega o user autenticado
   const {
     data: { user },
     error: authErr
   } = await supabase.auth.getUser();
   if (authErr || !user) throw new Error('Não autenticado');
 
-  // 2. Pega o perfil para ler o role
+
   const { data: perfil, error: perfilErr } = await supabase
     .from('perfis')
     .select('role')
@@ -24,14 +20,13 @@ export async function fetchFaturas({ adminParam = false } = {}) {
     .single();
   if (perfilErr) throw perfilErr;
 
-  // 3. Monta a query base
+
   let query = supabase
     .from('faturas')
     .select('*')
     .order('ano', { ascending: false })
     .order('mes', { ascending: false });
 
-  // 4. Se não for admin nem senhorio e não passou override, filtra pelo próprio
   if (!adminParam && perfil.role === 'inquilino') {
     query = query.eq('user_id', user.id);
   }
@@ -42,7 +37,7 @@ export async function fetchFaturas({ adminParam = false } = {}) {
 }
 
 /**
- * Cria nova fatura para ano/mes especificados, associando user_id = auth.uid()
+ * Cria nova fatura para ano/mes associando user_id = auth.uid()
  */
 export async function createFatura({ ano, mes, valor, condominio_id = null, pdf_url = null }) {
   const {
@@ -84,7 +79,7 @@ export async function updateFatura(id, updates) {
 }
 
 /**
- * Deleta fatura
+ * Apaga fatura
  */
 export async function deleteFatura(id) {
   const { data, error } = await supabase
@@ -96,7 +91,7 @@ export async function deleteFatura(id) {
 }
 
 /**
- * Busca uma fatura específica
+ * Procura uma fatura específica
  */
 export async function getFaturaById(id) {
   const { data, error } = await supabase

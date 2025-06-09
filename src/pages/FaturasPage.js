@@ -1,4 +1,3 @@
-// src/pages/FaturasPage.js
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { fetchFaturas, updateFatura } from '../api/faturas';

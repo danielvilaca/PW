@@ -2,9 +2,9 @@ import { supabase } from '../services/supabaseClient';
 
 /**
  * Retorna todos os pagamentos visíveis para o user logado:
- *  - adminParam=true → TODOS
- *  - adminParam=false & role='senhorio' → TODOS
- *  - adminParam=false & role='inquilino' → só user_id = auth.uid()
+ *  - adminParam=true - TODOS
+ *  - adminParam=false & role='senhorio' - TODOS
+ *  - adminParam=false & role='inquilino' - só user_id = auth.uid()
  *
  * @param {{ adminParam?: boolean }} opts
  */
@@ -27,7 +27,6 @@ export async function fetchPagamentos({ adminParam = false } = {}) {
     .select('*')
     .order('data_pg', { ascending: false });
 
-  // se for inquilino e não quiser todos, filtra só os próprios
   if (!adminParam && perfil.role === 'inquilino') {
     query = query.eq('user_id', user.id);
   }
@@ -39,8 +38,8 @@ export async function fetchPagamentos({ adminParam = false } = {}) {
 
 /**
  * Cria um pagamento:
- *  - inquilino → attributo user_id = auth.uid()
- *  - admin/senhorio → payData.user_id deve estar presente
+ *  - inquilino - attributo user_id = auth.uid()
+ *  - admin/senhorio - payData.user_id deve estar presente
  */
 export async function createPagamento(payData) {
   const {
@@ -107,7 +106,7 @@ export async function deletePagamento(id) {
   return data;
 }
 
-/** Busca um pagamento específico */
+/** Procura um pagamento específico */
 export async function getPagamentoById(id) {
   const { data, error } = await supabase
     .from('pagamentos')

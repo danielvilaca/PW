@@ -1,11 +1,9 @@
-// src/components/OrcamentoCard.js
-
 import React, { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { updateOrcamento, deleteOrcamento } from '../api/orcamentos';
 
 /**
- * Exibe um orçamento em modo “cartão”. Se o utilizador tiver permissão
+ * Apresenta um orçamento em modo “cartão”. Se o utilizador tiver permissão
  * (admin, senhorio, ou o próprio autor), mostra botões para editar/excluir.
  *
  * Props:
@@ -62,8 +60,6 @@ export default function OrcamentoCard({ orc }) {
     if (!window.confirm('Eliminar este orçamento?')) return;
     try {
       await deleteOrcamento(orc.id);
-      // Simples: recarrega a página inteira para refletir a remoção.
-      // Pode-se otimizar removendo o item do estado pai em vez disso.
       window.location.reload();
     } catch (err) {
       console.error('Erro ao excluir orçamento:', err);
@@ -72,7 +68,6 @@ export default function OrcamentoCard({ orc }) {
   };
 
   if (!editMode) {
-    // Modo exibição
     return (
       <div className="card mb-2 p-2">
         <div className="d-flex">
@@ -134,7 +129,6 @@ export default function OrcamentoCard({ orc }) {
     );
   }
 
-  // Modo edição
   return (
     <form onSubmit={handleSave} className="card p-2 mb-2">
       <div className="row g-2">

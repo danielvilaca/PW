@@ -1,15 +1,14 @@
-// src/components/OrcamentoFormModal.js
 import React, { useState } from 'react';
 import { createOrcamento } from '../api/orcamentos';
 
 /**
- * Modal Bootstrap simples para inserir um novo orçamento
+ * Modal simples para inserir um novo orçamento
  *
  * Props:
- *  - visible: boolean → se deve mostrar ou não o modal
- *  - onClose: () => void → callback para fechar o modal
- *  - pedidoId: string → ID (PK) do pedido ao qual associar o orçamento
- *  - onFinish: () => void → callback a chamar após criar com sucesso (para recarregar lista)
+ *  - visible: boolean - se deve mostrar ou não o modal
+ *  - onClose: () => void- callback para fechar o modal
+ *  - pedidoId: string - ID (PK) do pedido ao qual associar o orçamento
+ *  - onFinish: () => void - callback a chamar após criar com sucesso (para recarregar lista)
  */
 export default function OrcamentoFormModal({ visible, onClose, pedidoId, onFinish }) {
   const [fornecedor, setFornecedor] = useState('');
@@ -24,7 +23,7 @@ export default function OrcamentoFormModal({ visible, onClose, pedidoId, onFinis
     setSaving(true);
     setErrorMsg('');
 
-    // Validações simples
+    // Validações
     if (!fornecedor.trim() || !contacto.trim() || !valor) {
       setErrorMsg('Preencha todos os campos obrigatórios.');
       setSaving(false);
@@ -39,7 +38,7 @@ export default function OrcamentoFormModal({ visible, onClose, pedidoId, onFinis
         valor: parseFloat(valor),
         anexo_url: anexoUrl.trim() || null,
       });
-      // Limpa e fecha
+
       setFornecedor('');
       setContacto('');
       setValor('');

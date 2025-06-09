@@ -1,4 +1,3 @@
-// src/App.js
 import React from 'react';
 import {
   BrowserRouter,
@@ -22,12 +21,10 @@ import Login from './pages/login';
 function AppContent() {
   const { user, perfil, isLoading, isAuthenticated } = useAuth();
 
-  // 1) Ainda a verificar sessão/perfil → não renderizamos nada
   if (isLoading) {
     return null;
   }
 
-  // 2) Se não há utilizador autenticado (user === null) → mostramos apenas rota /login
   if (!isAuthenticated) {
     return (
       <Routes>
@@ -37,21 +34,19 @@ function AppContent() {
     );
   }
 
-  // 3) Se o utilizador está autenticado mas o perfil ainda não veio da API → aguardamos
   if (user && perfil === null) {
     return null;
   }
 
-  // 4) A partir daqui: user !== null e perfil !== null → já podemos ler perfil.role
   return (
     <>
       <Navbar />
 
       <Routes>
-        {/* Home ("/") → qualquer utilizador autenticado */}
+        {/* Home ("/") - qualquer utilizador autenticado */}
         <Route path="/" element={<HomePage />} />
 
-        {/* Condominios → apenas admin ou senhorio */}
+        {/* Condominios - apenas admin ou senhorio */}
         <Route
           path="/condominios"
           element={
@@ -63,19 +58,19 @@ function AppContent() {
           }
         />
 
-        {/* Pedidos → qualquer utilizador autenticado (inquilino, senhorio ou admin) */}
+        {/* Pedidos - qualquer utilizador autenticado (inquilino, senhorio ou admin) */}
         <Route path="/pedidos" element={<PedidosPage />} />
 
-        {/* Faturas → qualquer utilizador autenticado */}
+        {/* Faturas - qualquer utilizador autenticado */}
         <Route path="/faturas" element={<FaturasPage />} />
 
-        {/* Pagamentos → qualquer utilizador autenticado */}
+        {/* Pagamentos - qualquer utilizador autenticado */}
         <Route path="/pagamentos" element={<PagamentosPage />} />
 
-        {/* Minha Conta → qualquer utilizador autenticado */}
+        {/* Minha Conta - qualquer utilizador autenticado */}
         <Route path="/conta" element={<ContaPage />} />
 
-        {/* Gestão de Contas → apenas admin */}
+        {/* Gestão de Contas - apenas admin */}
         <Route
           path="/gestao-contas"
           element={
@@ -87,10 +82,10 @@ function AppContent() {
           }
         />
 
-        {/* Se formos a /login estando já autenticado, redireciona para / */}
+        {/* /login estando já autenticado => redireciona para / */}
         <Route path="/login" element={<Navigate to="/" replace />} />
 
-        {/* Qualquer outra rota inválida → redireciona para "/" */}
+        {/* Qualquer outra rota inválida => redireciona para "/" */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
