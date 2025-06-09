@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil, createPerfilAdmin } from '../api/perfis';
+import { fetchTodosPerfis, updatePerfilAdmin, eliminarPerfil, createPerfilAdmin, updatePerfil , } from '../api/perfis';
 import PerfilCardAdmin from '../components/PerfilCardAdmin';
 import { useAuth } from '../auth/AuthContext';
 
@@ -46,6 +46,13 @@ export default function GestaoContasPage() {
     await updatePerfilAdmin(perfil.id, { role: novoRole });
     carregar();
   };
+const editarInfo = async (perfil) => {
+  const nome = prompt('Nome:', perfil.nome);
+  if (!nome) return;
+  await updatePerfil(perfil.user_id, { nome }); // <-- Troca aqui!
+  carregar();
+};
+
 
   const remover = async (id) => {
     if (!window.confirm('Eliminar conta?')) return;
@@ -85,11 +92,15 @@ export default function GestaoContasPage() {
 
       <div className="vstack gap-3">
         {contas.map((c) => (
+          console.log(c),
+
+          // Renderiza cada perfil com o componente PerfilCardAdmin
           <PerfilCardAdmin
+          // Passa as props necessárias para o componente
             key={c.id}
-            perfil={c}
+            perfil={c}  
             onEdit={editarRole}
-            onEditInfo={() => alert('Editar informações não implementado')}
+            onEditInfo={ editarInfo}
             onDelete={remover}
           />
         ))}
@@ -169,3 +180,4 @@ export default function GestaoContasPage() {
     </div>
   );
 }
+

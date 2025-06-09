@@ -145,8 +145,16 @@ export const updatePerfilAdmin = async (id, updates) => {
 
   if (error) throw error;
 };
-
-/**
+//PARA EDITAR PERFIS
+export const editarPerfil = async (id, updates) => {
+  const { error } = await supabase
+    .from('perfis')
+    .update(updates)
+    .eq('id', id)
+  if (error) throw error;
+  };
+  
+/*
  * Elimina um perfil pelo seu ID interno.
  * @param {string} id
  * @returns {Promise<void>}
